@@ -2,8 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
-# Datos de ejemplo para la autenticación
-usuarios = {'usuario': 'contraseña'}
+def validar_usuario(usuario, contraseña):
+    if usuario == 'admin' and contraseña == 'admin':
+        return True
+    else:
+        return False
 
 @app.route('/')
 def inicio():
@@ -13,12 +16,10 @@ def inicio():
 def login():
     usuario = request.form['usuario']
     contraseña = request.form['contraseña']
-    
-    if usuario in usuarios and usuarios[usuario] == contraseña:
-        return redirect(url_for('bienvenida', usuario=usuario))
+    if validar_usuario(usuario, contraseña):
+        return redirect(url_for('bienvenida', usuario=usuario, contraseña=contraseña))
     else:
         return render_template('login.html', mensaje='Usuario o contraseña incorrectos')
-
 @app.route('/bienvenida/<usuario>')
 def bienvenida(usuario):
     return render_template('bienvenida.html', usuario=usuario)
