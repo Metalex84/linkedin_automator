@@ -5,6 +5,17 @@ import time
 
 app = Flask(__name__)
 
+'''
+    TODO:
+    - Depurar código existente (no funciona bien)...
+    - Añadir más funcionalidades como:
+        - Más criterios de búsqueda (contacto 1, 2 3 grado)
+        - Elegir si quiero visitar perfil, conectar o mandar msg
+    SIGUIENTE FASE:
+    - Otro bot para traer datos de contacto a CSV
+    - PABBLY: importar CSV a CRM (integracion existente)
+'''
+
 @app.route('/')
 def inicio():
     return render_template('login.html')
