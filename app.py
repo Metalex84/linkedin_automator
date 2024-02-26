@@ -1,49 +1,48 @@
-from flask import Flask, render_template, request, redirect, url_for
-from selenium.webdriver.common.by import By
+from flask import Flask, render_template, request
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 import time
 
 app = Flask(__name__)
-
-app.debug = True
-
-'''
-    TODO:
-    - Depurar código existente (no funciona bien)...
-    - Añadir más funcionalidades como:
-        - Más criterios de búsqueda (contacto 1, 2 3 grado)
-        - Elegir si quiero visitar perfil, conectar o mandar msg
-    SIGUIENTE FASE:
-    - Otro bot para traer datos de contacto a CSV
-    - PABBLY: importar CSV a CRM (integracion existente)
-'''
+driver = webdriver.Chrome()
 
 @app.route('/')
-def inicio():
-    return render_template('login.html')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/acciones', methods=['POST', 'GET'])
+def acciones():
+    opcion = request.form['opcion']
+    return render_template('login.html', opcion=opcion)
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    user = request.form['usuario']
-    passw = request.form['contraseña']
-    driver = webdriver.Chrome()
+    # Recupero la info del formulario
+    usuario = request.form.get('username')
+    contrasena = request.form.get('password')
+    # Abro el navegador con LinkedIn
+    
     driver.get('https://www.linkedin.com')
+    # Busco los campos de usuario y contraseña para meter los mios
     username = driver.find_element(By.XPATH, '//*[@id="session_key"]')
     password = driver.find_element(By.XPATH, '//*[@id="session_password"]')
-    # user = 'agonzalez.venegas@outlook.com'
-    # passw = 'ktmEXC-2022l'
-    username.send_keys(user)
-    password.send_keys(passw)
+    username.send_keys(usuario)
+    password.send_keys(contrasena)
+    # Busco el boton de submit para enviar el formulario web
     submit = driver.find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
-    time.sleep(2)
-    return render_template('bienvenida.html', driver=driver)
+    time.sleep(3)
 
-@app.route('/bienvenida', methods=['POST', 'GET'])
-def bienvenida(driver):
-    busqueda = request.form['busqueda']
-    # busqueda = "Horeca"
-    driver.get(f"https://www.linkedin.com/search/results/people/?keywords={busqueda}&origin=SWITCH_SEARCH_VERTICAL")
+    return render_template('busqueda.html', usuario=usuario)
+
+
+@app.route('/busqueda', methods=['POST', 'GET'])
+def busqueda():
+    texto = request.form.get('texto_busqueda')
+    driver.get(f"https://www.linkedin.com/search/results/people/?keywords={texto}&origin=SWITCH_SEARCH_VERTICAL")
     time.sleep(2)
     # Aquí intento visitar todos los perfiles
     profiles_pattern = 'app-aware-link '
@@ -56,6 +55,7 @@ def bienvenida(driver):
         print("Perfil visitado")
     driver.close()
     return "¡Hecho!"
+
 
 if __name__ == '__main__':
     app.run(debug=True)

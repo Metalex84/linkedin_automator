@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Filtra tu búsqueda
+{% endblock %}
+
+{% block main %}
+<div class="container mt-5">
+    <h2>Bienvenido, {{ usuario }}</h2>
+    <form action="/busqueda" method="post">
+        <div class="form-group">
+            <label for="busqueda">Clave de busqueda</label>
+            <input type="text" class="form-control" id="busqueda" name="texto_busqueda" required>
+        </div>
+    <!-- TODO: añadir más funcionalidades de búsqueda -->
+        <button type="submit" class="btn btn-primary">Aceptar</button>
+    </form>
+    <a href="/">Cancelar</a>
+</div>
+{% endblock %}
