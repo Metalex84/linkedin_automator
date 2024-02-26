@@ -5,6 +5,8 @@ import time
 
 app = Flask(__name__)
 
+app.debug = True
+
 '''
     TODO:
     - Depurar código existente (no funciona bien)...
