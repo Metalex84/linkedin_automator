@@ -6,8 +6,12 @@
 
 {% block main %}
     <h1>Acción completada</h1>
-    <a href="/">Volver al inicio</a>
-    { % for profile in profiles %}
-        <p>{{ profile }}</p>
-    {% endfor %}
+    <ul>
+        {% for profile in profiles %}
+            <li>{{ profile }}</li>
+        {% endfor %}
+    </ul>
+    <div class="mb-3">
+        <a href="{{ url_for('busqueda') }}">Volver</a>
+    </div>
 {% endblock %}

@@ -12,6 +12,11 @@
         <div class="mb-3">
             <input class="form-control mx-auto w-auto" id="passw" name="password" placeholder="Contraseña" type="password">
         </div>
-        <button class="btn btn-primary" type="submit">Entrar para {{ opcion }}</button>
+        <div class="mb-3">
+            <button class="btn btn-primary" type="submit">Entrar para {{ opcion }}</button>
+        </div>
+        <div class="mb-3">
+            <a href="{{ url_for('index') }}">Volver</a>
+        </div>
     </form>
 {% endblock %}
