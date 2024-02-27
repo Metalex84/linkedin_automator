@@ -7,6 +7,7 @@ import time
 
 app = Flask(__name__)
 current_year = datetime.now().year
+app.config['opcion'] = None
 driver = webdriver.Chrome()
 
 @app.route('/')
@@ -16,13 +17,21 @@ def index():
 
 @app.route('/acciones', methods=['POST', 'GET'])
 def acciones():
-    opcion = request.form['opcion']
-    return render_template('login.html', opcion=opcion, current_year=current_year)
+    accion = ''
+    app.config['opcion'] = request.form.get('opciones')
+    opt = app.config['opcion']
+    if opt == '1':
+        accion = 'visitar perfiles'
+    elif opt == '2':
+        accion = 'escribir mensajes'
+    elif opt == '3':
+        accion = 'enviar invitaciones'
+
+    return render_template('login.html', current_year=current_year, accion=accion)
 
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    # Recupero la info del formulario
     usuario = request.form.get('username')
     contrasena = request.form.get('password')
     # Abro el navegador con LinkedIn
@@ -41,17 +50,30 @@ def login():
 
 @app.route('/busqueda', methods=['POST', 'GET'])
 def busqueda():
+
     texto = request.form.get('texto_busqueda')
     driver.get(f"https://www.linkedin.com/search/results/people/?keywords={texto}&origin=SWITCH_SEARCH_VERTICAL")
-    time.sleep(2)
-    # Aquí intento visitar todos los perfiles
-    profiles_pattern = 'app-aware-link '
-    profiles = driver.find_elements(By.XPATH, f'//*[@class="{profiles_pattern}"]')
-    visit_profiles = [p for p in profiles]
-    for p in visit_profiles:
-        # Para conectar seria: driver.execute_script("arguments[0].click();", p)
-        p_url = p.get_attribute('href')
-        driver.execute_script(f"window.open('{p_url}');")
+    time.sleep(1)
+
+    opt = app.config['opcion']
+    if opt == '1':
+        profiles_pattern = 'app-aware-link '
+        profiles = driver.find_elements(By.XPATH, f'//*[@class="{profiles_pattern}"]')
+        visit_profiles = [p for p in profiles]
+        for p in visit_profiles:
+            # Para conectar seria: driver.execute_script("arguments[0].click();", p)
+            p_url = p.get_attribute('href')
+            driver.execute_script(f"window.open('{p_url}');")
+    
+    elif opt == '2':
+        print('Escribir mensajes no implementado aun')
+        
+    elif opt == '3':
+        print('Enviar invitaciones no implementado aun')
+    
+    else:
+        return render_template('index.html', current_year=current_year)
+
     driver.close()
     return render_template("done.html", profiles=visit_profiles, current_year=current_year)
 
