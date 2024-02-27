@@ -6,18 +6,18 @@ from datetime import datetime
 import time
 
 app = Flask(__name__)
+current_year = datetime.now().year
 driver = webdriver.Chrome()
 
 @app.route('/')
 def index():
-    current_year = datetime.now().year
     return render_template('index.html', current_year=current_year)
 
 
 @app.route('/acciones', methods=['POST', 'GET'])
 def acciones():
     opcion = request.form['opcion']
-    return render_template('login.html', opcion=opcion)
+    return render_template('login.html', opcion=opcion, current_year=current_year)
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -36,7 +36,7 @@ def login():
     submit = driver.find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
     time.sleep(1)
-    return render_template('busqueda.html', usuario=usuario)
+    return render_template('busqueda.html', usuario=usuario, current_year=current_year)
 
 
 @app.route('/busqueda', methods=['POST', 'GET'])
@@ -53,7 +53,7 @@ def busqueda():
         p_url = p.get_attribute('href')
         driver.execute_script(f"window.open('{p_url}');")
     driver.close()
-    return render_template("done.html", profiles=visit_profiles)
+    return render_template("done.html", profiles=visit_profiles, current_year=current_year)
 
 
 if __name__ == '__main__':
