@@ -24,7 +24,6 @@ def login():
     usuario = request.form.get('username')
     contrasena = request.form.get('password')
     # Abro el navegador con LinkedIn
-    
     driver.get('https://www.linkedin.com')
     # Busco los campos de usuario y contraseña para meter los mios
     username = driver.find_element(By.XPATH, '//*[@id="session_key"]')
@@ -34,8 +33,7 @@ def login():
     # Busco el boton de submit para enviar el formulario web
     submit = driver.find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
-    time.sleep(3)
-
+    time.sleep(1)
     return render_template('busqueda.html', usuario=usuario)
 
 
@@ -49,7 +47,7 @@ def busqueda():
     profiles = driver.find_elements(By.XPATH, f'//*[@class="{profiles_pattern}"]')
     visit_profiles = [p for p in profiles]
     for p in visit_profiles:
-    #driver.execute_script("arguments[0].click();", p)
+        # Para conectar seria: driver.execute_script("arguments[0].click();", p)
         p_url = p.get_attribute('href')
         driver.execute_script(f"window.open('{p_url}');")
     driver.close()
