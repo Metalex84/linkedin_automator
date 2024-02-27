@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for, redirect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from datetime import datetime
 import time
 
 app = Flask(__name__)
@@ -9,7 +10,8 @@ driver = webdriver.Chrome()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    current_year = datetime.now().year
+    return render_template('index.html', current_year=current_year)
 
 
 @app.route('/acciones', methods=['POST', 'GET'])
