@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Resultados
+{% endblock %}
+
+{% block main %}
+    <h1>Acción completada</h1>
+    <a href="/">Volver al inicio</a>
+    { % for profile in profiles %}
+        <p>{{ profile }}</p>
+    {% endfor %}
+{% endblock %}

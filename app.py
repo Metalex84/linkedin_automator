@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for, redirect
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -52,9 +52,8 @@ def busqueda():
     #driver.execute_script("arguments[0].click();", p)
         p_url = p.get_attribute('href')
         driver.execute_script(f"window.open('{p_url}');")
-        print("Perfil visitado")
     driver.close()
-    return "¡Hecho!"
+    return render_template("done.html", profiles=visit_profiles)
 
 
 if __name__ == '__main__':
