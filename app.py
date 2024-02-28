@@ -10,7 +10,7 @@ current_year = datetime.now().year
 app.config['opcion'] = None
 driver = webdriver.Chrome()
 
-
+# Antes de empezar: session.clear() para borrar las cookies y la cache del navegador
 @app.route('/')
 def index():
     return render_template('index.html', current_year=current_year)
@@ -70,6 +70,8 @@ def busqueda():
             # Utiliza otro webdriver: driver2.get(p_url)
             # OJO: implementar un tiempo aleatorio para que no se bloquee el navegador
             # driver.close()
+            time.sleep(1) # Ojo, numero aleatorio !!! 
+        # OJO: implementar un tiempo aleatorio para que no se bloquee el navegador
     
     elif opt == '2':
         print('Escribir mensajes no implementado aun')
@@ -89,3 +91,9 @@ def busqueda():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+    '''
+    Al final habrá que hacer un área privada con preferencias de cada cual, con mapeo de las visitas (quién está conectado), y que se guarden
+    las preferencias de cada usuario (credenciales de Linkedin, preferencias de busqueda, rol en la empresa, fotos, etcétera).
+    '''
