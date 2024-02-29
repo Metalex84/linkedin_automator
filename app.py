@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, render_template, request, session, url_for, redirect
+from flask_session import Session
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -6,13 +7,18 @@ from datetime import datetime
 import time
 
 app = Flask(__name__)
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
+Session(app)
+
 current_year = datetime.now().year
 app.config['opcion'] = None
+
 driver = webdriver.Chrome()
 
-# Antes de empezar: session.clear() para borrar las cookies y la cache del navegador
 @app.route('/')
 def index():
+    session.clear()
     return render_template('index.html', current_year=current_year)
 
 
@@ -84,6 +90,7 @@ def busqueda():
         return render_template('index.html', current_year=current_year)
 
     driver.close()
+    session.clear()
     return render_template("done.html", profiles=visit_profiles, current_year=current_year)
 
     # Filtrado info de contacto (clasificado entre email corporativo o personal).
