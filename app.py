@@ -4,6 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from datetime import datetime
+import random
 import time
 
 app = Flask(__name__)
@@ -51,7 +52,7 @@ def login():
     # Busco el boton de submit para enviar el formulario web
     submit = driver.find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
-    time.sleep(1) # Ojo, numero aleatorio !!! 
+    time.sleep(random.randint(1, 4))
     return render_template('busqueda.html', usuario=usuario, current_year=current_year)
 
 
@@ -60,7 +61,7 @@ def busqueda():
 
     texto = request.form.get('texto_busqueda')
     driver.get(f"https://www.linkedin.com/search/results/people/?keywords={texto}&origin=SWITCH_SEARCH_VERTICAL")
-    time.sleep(1) # Ojo, numero aleatorio !!! 
+    time.sleep(random.randint(1, 4))
     # OJO: empezar con la paginación! Averiguar cuántas páginas de resultados se producen 
     # OJO: implementar opcion de busqueda avanzada: contactos de 2 o 3 grado, ubicacion, 
     opt = app.config['opcion']
@@ -76,7 +77,7 @@ def busqueda():
             # Utiliza otro webdriver: driver2.get(p_url)
             # OJO: implementar un tiempo aleatorio para que no se bloquee el navegador
             # driver.close()
-            time.sleep(1) # Ojo, numero aleatorio !!! 
+            time.sleep(random.randint(1, 4))
         # OJO: implementar un tiempo aleatorio para que no se bloquee el navegador
     
     elif opt == '2':
