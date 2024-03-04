@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, url_for, redirect
+from flask import Flask, render_template, request, url_for, redirect
 from flask_session import Session
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -19,7 +19,7 @@ app.config['driver'] = None
 
 @app.route('/')
 def index():
-    session.clear()
+    # TODO: Implementar un selector para permitir al usuario elegir con qué navegador local quiere hacer el scrapping
     app.config['driver'] = webdriver.Chrome()
     return render_template('index.html', current_year=current_year)
 
@@ -43,14 +43,11 @@ def acciones():
 def login():
     usuario = request.form.get('username')
     contrasena = request.form.get('password')
-    # Abro el navegador con LinkedIn
     app.config['driver'].get('https://www.linkedin.com')
-    # Busco los campos de usuario y contraseña para meter los mios
     username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
     password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
     username.send_keys(usuario)
     password.send_keys(contrasena)
-    # Busco el boton de submit para enviar el formulario web
     submit = app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
     time.sleep(random.randint(1, 4))
@@ -59,47 +56,65 @@ def login():
 
 @app.route('/busqueda', methods=['POST', 'GET'])
 def busqueda():
-    time.sleep(random.randint(1, 4))
-    # OJO: implementar opcion de busqueda avanzada: contactos de 2 o 3 grado, ubicacion, 
-    opt = app.config['opcion']
-    if opt == '1':
-        # Voy a intentar averiguar cuántas páginas de resultados se producen. Me lo dirá el contenido del último button de la 'ul'...
-        '''
-        ESTO TODAVÍA NO SALE
-        '''
-        pagina = 1
-        lista_raiz = app.config['driver'].find_elements(By.XPATH, '//*[@class="artdeco-pagination__pages artdeco-pagination__pages--number"]')
-        print(lista_raiz)
-   
+    # TODO:  
+    # - opcion de busqueda avanzada: contactos de 2 o 3 grado, ubicacion...
+    # - filtrado info de contacto (clasificado entre email corporativo o personal).
 
-        app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={request.form.get('texto_busqueda')}&origin=SWITCH_SEARCH_VERTICAL&page={pagina}")
-        profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
-        visit_profiles = [p for p in profiles]
-        # OJO: copiar el contenido de visit_profiles a una lista nueva para que no se pierda al cerrar el navegador
-        for p in visit_profiles:
-            p_url = p.get_attribute('href')
-            app.config['driver'].execute_script(f"window.open('{p_url}');")
-            # En cada iteracion se abre una nueva pestaña con el perfil de la persona pero con webdriver, no con JS
-            # Utiliza otro webdriver: driver2.get(p_url)
-            # OJO: implementar un tiempo aleatorio para que no se bloquee el navegador
-            # app.config['driver'].close()
-            time.sleep(random.randint(1, 4))
-    
+    opt = app.config['opcion']
+    perfiles_visitados = []
+    cuadro_texto = request.form.get('texto_busqueda')
+    if opt == '1':
+        pagina = 1
+        while True:
+            '''
+            # OJO: esto no funciona!
+            lista_raiz = app.config['driver'].find_elements(By.XPATH, '//*[@class="artdeco-pagination__pages artdeco-pagination__pages--number"]')
+            elements = [e for e in lista_raiz]
+            for e in elements:
+                print(e)
+                # print(e.get_attribute('data-test-pagination-page-btn'))
+            '''
+            # La pagina que ya no contiene resultados de busqueda es la unica que contiene esta class:
+            # TODO: OJO con esta condicion de paradam, porque no se cumple!!!
+            if not app.config['driver'].find_elements(By.XPATH, '//*[class="artdeco-empty-state__message"]'):
+                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL&page={pagina}")
+                profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                visit_profiles = [p for p in profiles]
+                # perfiles = visit_profiles[:]
+                # ¿Haría falta copiar el contenido de visit_profiles a una lista nueva para que no se pierda al cerrar el navegador?
+                # for p in perfiles:
+                for p in visit_profiles:
+                    p_url = p.get_attribute('href')
+                    app.config['driver'].execute_script(f"window.open('{p_url}');")
+                    # TODO: recuperar informacion del perfil visitado e ir construyendo lista tras cada vuelta
+                    perfiles_visitados.append(p)
+                    '''
+                    app.config['driver'].switch_to.window(app.config['driver'].window_handles[1])
+                    app.config['driver'].close()
+                    app.config['driver'].switch_to.window(app.config['driver'].window_handles[0])
+                    '''
+                    time.sleep(random.randint(1, 4))
+                # TODO: intentar cerrar todas las pestañas tras cada vuelta del bucle externo
+                pagina += 1
+            else:
+                break
+        app.config['driver'].quit() # Quizá no haga falta cerrar esto ahora, sino esperar a la ultima pantalla
+        return render_template("done.html", profiles=perfiles_visitados, current_year=current_year)
+
     elif opt == '2':
-        print('Escribir mensajes no implementado aun')
+        app.config['driver'].quit()
+        return('Escribir mensajes no implementado aun')
+        # TODO
         
     elif opt == '3':
-        print('Enviar invitaciones no implementado aun')
+        app.config['driver'].quit()
+        return('Enviar invitaciones no implementado aun')
         # Para conectar seria: driver.execute_script("arguments[0].click();", p)
+        # TODO
 
     else:
-        return render_template('index.html', current_year=current_year)
-
-    app.config['driver'].close()
-    session.clear()
-    return render_template("done.html", profiles=visit_profiles, current_year=current_year)
-
-    # Filtrado info de contacto (clasificado entre email corporativo o personal).
+        app.config['driver'].quit()
+        return('Aqui ha pasado algo raro...')
 
 
 if __name__ == '__main__':
