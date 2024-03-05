@@ -3,6 +3,7 @@ from flask_session import Session
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
 from datetime import datetime
 import random
 import time
@@ -59,47 +60,38 @@ def busqueda():
     # TODO:  
     # - opcion de busqueda avanzada: contactos de 2 o 3 grado, ubicacion...
     # - filtrado info de contacto (clasificado entre email corporativo o personal).
-
     opt = app.config['opcion']
     perfiles_visitados = []
     cuadro_texto = request.form.get('texto_busqueda')
     if opt == '1':
         pagina = 1
+        app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL")
         while True:
-            '''
-            # OJO: esto no funciona!
-            lista_raiz = app.config['driver'].find_elements(By.XPATH, '//*[@class="artdeco-pagination__pages artdeco-pagination__pages--number"]')
-            elements = [e for e in lista_raiz]
-            for e in elements:
-                print(e)
-                # print(e.get_attribute('data-test-pagination-page-btn'))
-            '''
-            # La pagina que ya no contiene resultados de busqueda es la unica que contiene esta class:
-            # TODO: OJO con esta condicion de paradam, porque no se cumple!!!
-            if not app.config['driver'].find_elements(By.XPATH, '//*[class="artdeco-empty-state__message"]'):
-                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL&page={pagina}")
-                profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
-                visit_profiles = [p for p in profiles]
-                # perfiles = visit_profiles[:]
-                # ¿Haría falta copiar el contenido de visit_profiles a una lista nueva para que no se pierda al cerrar el navegador?
-                # for p in perfiles:
-                for p in visit_profiles:
-                    p_url = p.get_attribute('href')
-                    app.config['driver'].execute_script(f"window.open('{p_url}');")
-                    # TODO: recuperar informacion del perfil visitado e ir construyendo lista tras cada vuelta
-                    perfiles_visitados.append(p)
-                    '''
-                    app.config['driver'].switch_to.window(app.config['driver'].window_handles[1])
-                    app.config['driver'].close()
-                    app.config['driver'].switch_to.window(app.config['driver'].window_handles[0])
-                    '''
-                    time.sleep(random.randint(1, 4))
-                # TODO: intentar cerrar todas las pestañas tras cada vuelta del bucle externo
+            try:
+                if not app.config['driver'].find_elements(By.CLASS_NAME, 'artdeco-empty-state__message'):
+                    profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                    visit_profiles = [p for p in profiles]
+                    # perfiles = visit_profiles[:]
+                    # ¿Haría falta copiar el contenido de visit_profiles a una lista nueva para que no se pierda al cerrar el navegador?
+                    # for p in perfiles:
+                    for p in visit_profiles:
+                        p_url = p.get_attribute('href')
+                        app.config['driver'].execute_script(f"window.open('{p_url}');")
+                        # TODO: recuperar informacion del perfil visitado e ir construyendo lista tras cada vuelta
+                        perfiles_visitados.append(p)
+                        '''
+                        app.config['driver'].switch_to.window(app.config['driver'].window_handles[1])
+                        app.config['driver'].close()
+                        app.config['driver'].switch_to.window(app.config['driver'].window_handles[0])
+                        '''
+                        time.sleep(random.randint(1, 4))
                 pagina += 1
-            else:
+                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL&page={pagina}")
+            except NoSuchElementException:
+            # TODO: intentar cerrar todas las pestañas tras cada vuelta del bucle externo
                 break
-        app.config['driver'].quit() # Quizá no haga falta cerrar esto ahora, sino esperar a la ultima pantalla
-        return render_template("done.html", profiles=perfiles_visitados, current_year=current_year)
+            app.config['driver'].quit() # Quizá no haga falta cerrar esto ahora, sino esperar a la ultima pantalla
+            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year)
 
     elif opt == '2':
         app.config['driver'].quit()
