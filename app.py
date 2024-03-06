@@ -4,9 +4,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
+from linkedin_api import Linkedin
+from urllib.parse import urlparse
 from datetime import datetime
 import random
 import time
+import json
 
 app = Flask(__name__)
 
@@ -17,6 +20,15 @@ Session(app)
 current_year = datetime.now().year
 app.config['opcion'] = None
 app.config['driver'] = None
+app.config['api'] = None
+
+def extract_username(url):
+    parsed_url = urlparse(url)
+    path_comp = parsed_url.path.split('/')
+    if len(path_comp) > 2:
+        return path_comp[2]
+    else:
+        return None
 
 @app.route('/')
 def index():
@@ -44,6 +56,7 @@ def acciones():
 def login():
     usuario = request.form.get('username')
     contrasena = request.form.get('password')
+    app.config['api'] = Linkedin(usuario, contrasena)
     app.config['driver'].get('https://www.linkedin.com')
     username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
     password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
@@ -58,39 +71,50 @@ def login():
 @app.route('/busqueda', methods=['POST', 'GET'])
 def busqueda():
     # TODO:  
-    # - opcion de busqueda avanzada: contactos de 2 o 3 grado, ubicacion...
+    # - opcion de busqueda avanzada: ¿ubicacion?
     # - filtrado info de contacto (clasificado entre email corporativo o personal).
     opt = app.config['opcion']
     perfiles_visitados = []
     cuadro_texto = request.form.get('texto_busqueda')
+
+    # Recupero la profundidad de la red (contactos de segundo grado, de tercer grado o todos los contactos)
+    grado = request.form.get('grado')
+    if grado == 'grade2':
+        deep = '&network=%5B"S"%5D'
+    elif grado == 'grade3':
+        deep = '&network=%5B"O"%5D'
+    else:
+        deep = ''
+    
     if opt == '1':
         pagina = 1
-        app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL")
-        while True:
-            try:
-                if not app.config['driver'].find_elements(By.CLASS_NAME, 'artdeco-empty-state__message'):
-                    profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
-                    visit_profiles = [p for p in profiles]
-                    # perfiles = visit_profiles[:]
-                    # ¿Haría falta copiar el contenido de visit_profiles a una lista nueva para que no se pierda al cerrar el navegador?
-                    # for p in perfiles:
-                    for p in visit_profiles:
-                        p_url = p.get_attribute('href')
-                        app.config['driver'].execute_script(f"window.open('{p_url}');")
-                        # TODO: recuperar informacion del perfil visitado e ir construyendo lista tras cada vuelta
-                        perfiles_visitados.append(p)
-                        '''
-                        app.config['driver'].switch_to.window(app.config['driver'].window_handles[1])
-                        app.config['driver'].close()
-                        app.config['driver'].switch_to.window(app.config['driver'].window_handles[0])
-                        '''
-                        time.sleep(random.randint(1, 4))
+        try:
+            # TODO: implementar un bucle para recorrer todas las páginas de resultados. OJO a la condición de parada, que teóricamente genera una excepción
+            while pagina < 2:
+                # clave = app.config['driver'].find_element(By.CLASS_NAME, 'artdeco-empty-state__message')
+                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
+                time.sleep(random.randint(1, 4))
+                profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                visit_profiles = [p for p in profiles]
+                for p in visit_profiles:
+                    # TODO: ¿Por qué en la primera página solo me visita 3 perfiles?
+                    p_url = p.get_attribute('href')
+                    app.config['driver'].execute_script(f"window.open('{p_url}');")
+                    usuario = extract_username(p_url)
+                    perfiles_visitados.append(usuario)
+                    # Método para meter en un JSON la info de contacto de cada perfil visitado.
+                    # TODO: ¿Cómo manejar la excepción de que no haya info de contacto?
+                    # TODO: ¿Cómo consigo llevarme toda la info a un CSV?
+                    info = app.config['api'].get_profile_contact_info(usuario)
+                    json_info = json.dumps(info)
+                    with open('contact_info.json', 'w') as f:
+                        f.write(json_info)
+                    time.sleep(random.randint(1, 4))
                 pagina += 1
-                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}&origin=SWITCH_SEARCH_VERTICAL&page={pagina}")
-            except NoSuchElementException:
-            # TODO: intentar cerrar todas las pestañas tras cada vuelta del bucle externo
-                break
+        except NoSuchElementException:
             app.config['driver'].quit() # Quizá no haga falta cerrar esto ahora, sino esperar a la ultima pantalla
+            pass
+        finally:
             return render_template("done.html", profiles=perfiles_visitados, current_year=current_year)
 
     elif opt == '2':
