@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 from datetime import datetime
 import random
 import time
-import json
 
 app = Flask(__name__)
 
@@ -102,13 +101,10 @@ def busqueda():
                     app.config['driver'].execute_script(f"window.open('{p_url}');")
                     usuario = extract_username(p_url)
                     perfiles_visitados.append(usuario)
-                    # Método para meter en un JSON la info de contacto de cada perfil visitado.
                     # TODO: ¿Cómo manejar la excepción de que no haya info de contacto?
                     # TODO: ¿Cómo consigo llevarme toda la info a un CSV?
-                    info = app.config['api'].get_profile_contact_info(usuario)
-                    json_info = json.dumps(info)
-                    with open('contact_info.json', 'w') as f:
-                        f.write(json_info)
+                    # info = app.config['api'].get_profile_contact_info(usuario)
+
                     time.sleep(random.randint(1, 4))
                 pagina += 1
         except NoSuchElementException:
