@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from datetime import datetime
 import random
 import time
+import csv
 
 app = Flask(__name__)
 
@@ -86,13 +87,26 @@ def busqueda():
         deep = ''
     
     if opt == '1':
-        pagina = 1
+        # Uso el try-except para controlar el error que ocurriría si no se producen resultados en la búsqueda
+        # (intentaría scrapear algo que no existe y se lanzaría la NoSuchElementException)
         try:
-            # TODO: implementar un bucle para recorrer todas las páginas de resultados. OJO a la condición de parada, que teóricamente genera una excepción
-            while pagina < 2:
-                # clave = app.config['driver'].find_element(By.CLASS_NAME, 'artdeco-empty-state__message')
+            contact_info = []
+            # Averiguo cuántas páginas tengo que recorrer en total; para ello, me voy a la pagina 1
+            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
+            btn_pages = app.config['driver'].find_elements(By.XPATH, '//*[@class="artdeco-pagination__indicator artdeco-pagination__indicator--number ember-view"]')
+            botonera = [b for b in btn_pages]
+            paginas = len(botonera) - 1
+            # TODO: El error esta aqui abajo. ¿Por que?
+            num_pags = botonera[paginas].get_attribute('data-test-pagination-page-btn')            
+            print(f"****** Esto ha producido {num_pags} paginas de resultados")
+
+            for pagina in range(int(num_pags)):
+
+                # Primero me posiciono en la página de búsqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 time.sleep(random.randint(1, 4))
+
+                # Construyo la lista de perfiles a visitar
                 profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
                 visit_profiles = [p for p in profiles]
                 for p in visit_profiles:
@@ -100,16 +114,27 @@ def busqueda():
                     p_url = p.get_attribute('href')
                     app.config['driver'].execute_script(f"window.open('{p_url}');")
                     usuario = extract_username(p_url)
-                    perfiles_visitados.append(usuario)
-                    # TODO: ¿Cómo manejar la excepción de que no haya info de contacto?
-                    # TODO: ¿Cómo consigo llevarme toda la info a un CSV?
-                    # info = app.config['api'].get_profile_contact_info(usuario)
-
+                    contact_info.append(app.config['api'].get_profile_contact_info(usuario))
                     time.sleep(random.randint(1, 4))
-                pagina += 1
+                
+                # Ahora construyo la lista de nombres propios
+                nombres_usuarios = app.config['driver'].find_elements(By.XPATH, '//span[@aria-hidden="true"]')
+                names = [n.text for n in nombres_usuarios if len(n.text) > 0]
+                for n in names:
+                    perfiles_visitados.append(n)
+
+                    # OJO: Si consiguiera ir a cada uno de los perfiles y extraer la nombre y puesto, se scrapearía así:
+                    # - h1 class="text-heading-xlarge inline t-24 v-align-middle break-words" . text
+                    # - div class="text-body-medium break-words" . text
+                
+            archivo = 'datos_contacto.csv'
+            with open(archivo, mode='w', newline='') as f:
+                writer = csv.writer(f)
+                for row in contact_info:
+                    writer.writerow(row)
+
         except NoSuchElementException:
-            app.config['driver'].quit() # Quizá no haga falta cerrar esto ahora, sino esperar a la ultima pantalla
-            pass
+            return ('Ha habido un error al visitar perfiles')
         finally:
             return render_template("done.html", profiles=perfiles_visitados, current_year=current_year)
 
