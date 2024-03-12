@@ -34,6 +34,19 @@ def extract_username(url):
 @app.route('/')
 def index():
     # TODO: Implementar un selector para permitir al usuario elegir con qué navegador local quiere hacer el scrapping
+    # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
+    # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
+    # TODO: A profundidad 3 -> visitar perfiles
+    # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
+    #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
+    # TODO: Implementar un área privada para que cada usuario pueda guardar sus preferencias (Registro y Login)
+    # TODO: control error login LinkedIn
+    # TODO: control error busqueda LinkedIn (la busqueda no produjo resultados)
+    # TODO: perguntar seleccionar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
+    # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
+    # TODO: implementar un reloj que cuente el tiempo de scrapeo y lo muestre al finalizar
+    # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
+    # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     app.config['driver'] = webdriver.Chrome()
     return render_template('index.html', current_year=current_year)
 
