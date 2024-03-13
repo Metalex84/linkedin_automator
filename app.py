@@ -12,16 +12,20 @@ import time
 import math
 import csv
 
+
 app = Flask(__name__)
+
 
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+
 current_year = datetime.now().year
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['api'] = None
+
 
 def extract_username(url):
     parsed_url = urlparse(url)
@@ -30,6 +34,7 @@ def extract_username(url):
         return path_comp[2]
     else:
         return None
+    
 
 @app.route('/')
 def index():
@@ -105,8 +110,14 @@ def busqueda():
         app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
         str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
         num_results = str_results.text.split(' ')
-        resultados = int(num_results[0])
-        num_pags = math.ceil(resultados / 10)
+        try:
+            # Si el número de resultados es mayor a 999, el texto se divide en dos partes
+            resultados = int(num_results[0])
+        except ValueError:
+            buffer = num_results[1].split('.')
+            resultados = int(buffer[0].join(buffer[1]))
+        finally:
+            num_pags = math.ceil(resultados / 10)
 
         pagina = 1
         while pagina <= num_pags:
@@ -118,13 +129,20 @@ def busqueda():
             # Construyo la lista de perfiles a visitar
             profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
             visit_profiles = [p for p in profiles]
+            i = 0
+            print("Entrando al bucle for...")
             for p in visit_profiles:
                 p_url = p.get_attribute('href')
-                app.config['driver'].execute_script(f"window.open('{p_url}');")
+                # app.config['driver'].execute_script(f"window.open('{p_url}');")
                 usuario = extract_username(p_url)
-                # contact_info.append(app.config['api'].get_profile_contact_info(usuario))
-                print(f'Visitando perfil de {usuario}')
-                perfiles_visitados.append(usuario)
+                # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
+                i += 1
+                print(f"***************** Vuelta {i}") # OJO, se sale de este bucle, creo que no construye bien 'profiles'
+                path = f'/html/body/div[5]/div[3]/div[2]/div/div[1]/main/div/div/div[3]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
+                print(f"**************** Expresion {path}")
+                nombre = app.config['driver'].find_element(By.XPATH, path).text
+                print(f'El perfil de {nombre} se identifica como {usuario}')
+                perfiles_visitados.append(nombre)
                 time.sleep(random.randint(1, 4))
             
             # Ahora construyo la lista de nombres propios
