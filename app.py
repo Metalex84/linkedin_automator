@@ -38,7 +38,6 @@ def extract_username(url):
 
 @app.route('/')
 def index():
-    # TODO: Implementar un selector para permitir al usuario elegir con qué navegador local quiere hacer el scrapping
     # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
     # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
     # TODO: A profundidad 3 -> visitar perfiles
@@ -53,6 +52,7 @@ def index():
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
     # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     app.config['driver'] = webdriver.Chrome()
+    
     return render_template('index.html', current_year=current_year)
 
 
@@ -84,6 +84,7 @@ def login():
     submit = app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]')
     submit.click()
     time.sleep(random.randint(1, 4))
+
     return render_template('busqueda.html', usuario=usuario, current_year=current_year)
 
 
@@ -129,20 +130,17 @@ def busqueda():
             # Construyo la lista de perfiles a visitar
             profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
             visit_profiles = [p for p in profiles]
-            i = 0
-            print("Entrando al bucle for...")
+            i = 1
             for p in visit_profiles:
                 p_url = p.get_attribute('href')
                 # app.config['driver'].execute_script(f"window.open('{p_url}');")
                 usuario = extract_username(p_url)
                 # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
-                i += 1
-                print(f"***************** Vuelta {i}") # OJO, se sale de este bucle, creo que no construye bien 'profiles'
-                path = f'/html/body/div[5]/div[3]/div[2]/div/div[1]/main/div/div/div[3]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
-                print(f"**************** Expresion {path}")
+                path = f'*//li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
                 nombre = app.config['driver'].find_element(By.XPATH, path).text
                 print(f'El perfil de {nombre} se identifica como {usuario}')
                 perfiles_visitados.append(nombre)
+                i += 1
                 time.sleep(random.randint(1, 4))
             
             # Ahora construyo la lista de nombres propios
@@ -152,10 +150,6 @@ def busqueda():
             for n in names:
                 perfiles_visitados.append(n)
             '''
-
-                # OJO: Si consiguiera ir a cada uno de los perfiles y extraer la nombre y puesto, se scrapearía así:
-                # - h1 class="text-heading-xlarge inline t-24 v-align-middle break-words" . text
-                # - div class="text-body-medium break-words" . text
             pagina += 1
         '''    
         archivo = 'datos_contacto.csv'
@@ -174,7 +168,7 @@ def busqueda():
     elif opt == '3':
         app.config['driver'].quit()
         return('Enviar invitaciones no implementado aun')
-        # Para conectar seria: driver.execute_script("arguments[0].click();", p)
+        # Para conectar seria: app.config['driver'].execute_script("arguments[0].click();", p)
         # TODO
 
     else:
