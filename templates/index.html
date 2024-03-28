@@ -1,35 +1,20 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Bienvenido a LinkedIn Automation
+    Bienvenido a LinkedIn Automator
 {% endblock %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <header class="alert alert-primary border text-center" role="alert">
-            {{ message }}
-        </header>
-    {% endif %}
-{% endwith %}
-
 {% block main %}
-<div class="container text-center mb-5">
-    <div class="form-check form-check-inline">
-        <h2>¿Qué deseas hacer?</h2> 
-    </div>
-    <form action="/acciones" method="post" class="d-flex justify-content-center">
-        <div class="form-check form-check-inline">
-            <select name="opciones" class="form-select" required>
-                <option value="" selected>Selecciona una opción</option>
-                <option value="1">Visitar perfiles</option>
-                <option value="2">Escribir mensajes</option>
-                <option value="3">Enviar invitaciones</option>
-            </select>
+    <h2>Introduce tus credenciales de LinkedIn Automator</h2>
+    <form action="/login" method="post">
+        <div class="mb-3">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-50" id="user" name="username" placeholder="eMail" type="text" required>
         </div>
-        <div class="form-check form-check-inline">
-            <button class="btn btn-primary" type="submit">Continuar</button>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-50" id="passw" name="password" placeholder="Contraseña" type="password" aria-describedby="mostrar-contraseña" required>
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-primary" type="submit">Entrar</button>
         </div>
     </form>
-</div>
-
 {% endblock %}
