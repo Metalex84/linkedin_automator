@@ -4,6 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
+from werkzeug.security import generate_password_hash, check_password_hash
 from linkedin_api import Linkedin
 from urllib.parse import urlparse
 from datetime import datetime
@@ -68,11 +69,11 @@ def acciones():
     elif opt == '3':
         accion = 'enviar invitaciones'
 
-    return render_template('login.html', current_year=current_year, accion=accion)
+    return render_template('linklogin.html', current_year=current_year, accion=accion)
 
 
-@app.route('/login', methods=['POST', 'GET'])
-def login():
+@app.route('/linklogin', methods=['POST', 'GET'])
+def linklogin():
     usuario = request.form.get('username')
     contrasena = request.form.get('password')
     app.config['api'] = Linkedin(usuario, contrasena)
