@@ -7,7 +7,6 @@ from selenium.common.exceptions import NoSuchElementException
 from werkzeug.security import generate_password_hash, check_password_hash
 from linkedin_api import Linkedin
 from urllib.parse import urlparse
-from helpers import login_required
 from datetime import datetime
 import random
 import time
@@ -54,13 +53,11 @@ def extract_username(url):
 
 
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html', current_year=current_year)
 
 
 @app.route('/login', methods=['POST', 'GET'])
-@login_required
 def login():
     if request.method == 'POST':
         return render_template('actions.html', current_year=current_year, username=request.form.get('username'))
@@ -69,7 +66,6 @@ def login():
 
 
 @app.route('/acciones', methods=['POST', 'GET'])
-@login_required
 def acciones():
     if request.method == 'POST':
         accion = ''
@@ -87,7 +83,6 @@ def acciones():
 
 
 @app.route('/linklogin', methods=['POST', 'GET'])
-@login_required
 def linklogin():
     if request.method == 'POST':
         app.config['driver'] = webdriver.Chrome()
@@ -110,7 +105,6 @@ def linklogin():
 
 
 @app.route('/busqueda', methods=['POST', 'GET'])
-@login_required
 def busqueda():
     if request.method == 'POST':
         opt = app.config['opcion']
