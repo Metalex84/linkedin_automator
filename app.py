@@ -1,33 +1,46 @@
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from linkedin_api import Linkedin
+
+from cs50 import SQL
+
 from urllib.parse import urlparse
 from datetime import datetime
+
+from helpers import apology, login_required
+
 import random
 import time
 import math
 import csv
 
 
+# Configuro la aplicacion
 app = Flask(__name__)
 
-
+# Configuro la sesion para utilizar el sistema de archivos en lugar de cookies
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 
-current_year = datetime.now().year
+# Configuro variables globales
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['api'] = None
+current_year = datetime.now().year
 
+# Configuro la base de datos
+db = SQL("sqlite:///linkedin.db")
 
+# Funcion que parsea la url para extraer el nombre de usuario de LinkedIn
 def extract_username(url):
     parsed_url = urlparse(url)
     path_comp = parsed_url.path.split('/')
@@ -36,6 +49,16 @@ def extract_username(url):
     else:
         return None
     
+
+@app.after_request
+def after_request(response):
+    """Me aseguro de que los response no se almacenan en cache"""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Expires"] = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 
     # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
     # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
@@ -53,20 +76,93 @@ def extract_username(url):
 
 
 @app.route('/')
+@login_required
 def index():
+    ''' De momento solo muestro el nombre de usuario en la página principal para verificar que el login se ha producido '''
+    db.execute("SELECT usuario FROM usuarios WHERE id = ?", session["user_id"])
     return render_template('index.html', current_year=current_year)
+
 
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
+    # Borro posibles sesiones abiertas
+    session.clear()
+
+    # Me aseguro de que vengo del formmulario de login
     if request.method == 'POST':
-        return render_template('actions.html', current_year=current_year, username=request.form.get('username'))
+        
+        # Y me aseguro de que no hay campos vacios
+        if not request.form.get('username'):
+            return apology('¡Introduce tu nombre de usuario!', 403)
+        elif not request.form.get('password'):
+            return apology('¡Introduce tu contraseña!', 403)
+        
+        # Pregunto a la base de datos si el usuario existe
+        cursor = db.execute(
+            "SELECT * FROM usuarios WHERE usuario = ?", request.form.get('username')
+        )
+
+        # Y me aseguro de que la contraseña es correcta
+        if len(cursor) != 1 or not check_password_hash(
+            cursor[0]["password"], request.form.get('password')
+        ):
+            return apology('¡Usuario o contraseña incorrectos!', 403)
+        
+        # Almaceno el usuario que se ha logueado
+        session["user_id"] = cursor[0]["id"]
+
+        # Si todo fue bien, redirijo a la página de acciones
+        return render_template("actions.html", current_year=current_year, username=request.form.get('username'))
+
+    # Si vengo por GET, muestro el formulario de login directamente
     else:
-        return redirect(url_for('index'))
+        return render_template('index.html', current_year=current_year)
+
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return render_template('index.html', current_year=current_year)
+
+
+
+@app.route('/register', methods=['POST', 'GET'])
+def register():
+
+    if request.method == "POST":
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirmation = request.form.get('confirmation')
+
+        cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", username)
+
+        if not username:
+            return apology("¡Introduce un nombre de usuario!", 400)
+        elif len(cursor) != 0:
+            return apology("¡Este nombre de usuario ya existe!", 400)
+        elif not password:
+            return apology("¡Introduce una contraseña!", 400)
+        elif not confirmation:
+            return apology("¡Confirma tu contraseña!", 400)
+        elif password != confirmation:
+            return apology("¡Las contraseñas no coinciden!", 400)
+        else:
+            # Funcion de hash para la contraseña
+            hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
+            # Inserto el usuario en la base de datos
+            db.execute("INSERT INTO usuarios (usuario, password) VALUES (?, ?)", username, hash)
+            return redirect("/")
+    else:
+        return render_template('register.html', current_year=current_year)
+
 
 
 @app.route('/acciones', methods=['POST', 'GET'])
+@login_required
 def acciones():
+    # Si vengo por POST, recojo la opción seleccionada por el usuario
     if request.method == 'POST':
         accion = ''
         app.config['opcion'] = request.form.get('opciones')
@@ -78,11 +174,15 @@ def acciones():
         elif opt == '3':
             accion = 'enviar invitaciones'
         return render_template('linklogin.html', current_year=current_year, accion=accion)
+    
+    # Si vengo por GET, redirijo a la página de login
     else:
-        return redirect(url_for('index'))
+        return render_template('index.html', current_year=current_year)
+
 
 
 @app.route('/linklogin', methods=['POST', 'GET'])
+@login_required
 def linklogin():
     if request.method == 'POST':
         app.config['driver'] = webdriver.Chrome()
@@ -101,10 +201,12 @@ def linklogin():
 
         return render_template('busqueda.html', usuario=usuario, current_year=current_year)
     else:
-        return redirect(url_for('index'))
+        return render_template('index.html', current_year=current_year)
+
 
 
 @app.route('/busqueda', methods=['POST', 'GET'])
+@login_required
 def busqueda():
     if request.method == 'POST':
         opt = app.config['opcion']
@@ -198,7 +300,9 @@ def busqueda():
             app.config['driver'].quit()
             return('Aqui ha pasado algo raro...')
     else:
-        return redirect(url_for('index'))
+        return render_template('index.html', current_year=current_year)
+
+
 
 if __name__ == '__main__':
     app.run()

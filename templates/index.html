@@ -4,14 +4,23 @@
     Bienvenido a LinkedIn Automator
 {% endblock %}
 
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <header class="alert alert-primary border text-center" role="alert">
+            {{ message }}
+        </header>
+    {% endif %}
+{% endwith %}
+
+
 {% block main %}
-    <h2>Introduce tus credenciales de LinkedIn Automator</h2>
+    <h2>Bienvenido a LinkedIn Automator</h2>
     <form action="/login" method="post">
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-50" id="user" name="username" placeholder="eMail" type="text" required>
+            <input autocomplete="off" autofocus class="form-control mx-auto w-50" id="user" name="username" placeholder="eMail" type="text">
         </div>
         <div class="mb-3">
-            <input class="form-control mx-auto w-50" id="passw" name="password" placeholder="Contraseña" type="password" aria-describedby="mostrar-contraseña" required>
+            <input class="form-control mx-auto w-50" id="passw" name="password" placeholder="Contraseña" type="password" aria-describedby="mostrar-contraseña">
         </div>
         <div class="mb-3">
             <button class="btn btn-primary" type="submit">Entrar</button>
