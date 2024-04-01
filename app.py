@@ -35,6 +35,7 @@ Session(app)
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['api'] = None
+app.config['counter'] = 0
 current_year = datetime.now().year
 
 # Configuro la base de datos
@@ -68,17 +69,15 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
-
-
+    # TODO: Función que actualice cuántos shots le quedan al usuario en el día
     # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
     # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
     # TODO: A profundidad 3 -> visitar perfiles
     # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
     #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
-    # TODO: Implementar un área privada para que cada usuario pueda guardar sus preferencias (Registro y Login)
     # TODO: control error login LinkedIn
     # TODO: control error busqueda LinkedIn (la busqueda no produjo resultados)
-    # TODO: perguntar seleccionar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
+    # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
     # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
@@ -132,6 +131,10 @@ def login():
 
 @app.route("/logout")
 def logout():
+    print("Ultima conexion: ", datetime.now())
+    db.execute(
+        "UPDATE usuarios SET connection = ? WHERE usuario = ?", datetime.now(), session["user_id"]
+        )
     session.clear()
     return render_template('index.html', current_year=current_year)
 
@@ -161,7 +164,7 @@ def register():
             # Funcion de hash para la contraseña
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             # Inserto el usuario en la base de datos
-            db.execute("INSERT INTO usuarios (usuario, password) VALUES (?, ?)", username, hash)
+            db.execute("INSERT INTO usuarios (usuario, password, shots) VALUES (?, ?, ?)", username, hash, 120)
             return redirect("/")
     else:
         return render_template('register.html', current_year=current_year)
@@ -173,17 +176,22 @@ def register():
 def acciones():
     # Si vengo por POST, recojo la opción seleccionada por el usuario
     if request.method == 'POST':
-        accion = ''
-        app.config['opcion'] = request.form.get('opciones')
-        opt = app.config['opcion']
-        if opt == '1':
-            accion = 'visitar perfiles'
-        elif opt == '2':
-            accion = 'escribir mensajes'
-        elif opt == '3':
-            accion = 'enviar invitaciones'
-        return render_template('linklogin.html', current_year=current_year, accion=accion)
-    
+        # Esto solo se ejecutará si el usuario tiene acciones disponibles en el día.
+        acciones_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
+        if acciones_restantes[0]['shots'] == 0:
+            return apology('¡No tienes acciones disponibles hoy!', 403)
+        else:
+            accion = ''
+            app.config['opcion'] = request.form.get('opciones')
+            opt = app.config['opcion']
+            if opt == '1':
+                accion = 'visitar perfiles'
+            elif opt == '2':
+                accion = 'escribir mensajes'
+            elif opt == '3':
+                accion = 'enviar invitaciones'
+            return render_template('linklogin.html', current_year=current_year, accion=accion)
+        
     # Si vengo por GET, redirijo a la página de login
     else:
         return render_template('index.html', current_year=current_year)
