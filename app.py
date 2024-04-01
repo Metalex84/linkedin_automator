@@ -50,6 +50,16 @@ def extract_username(url):
         return None
     
 
+# Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos
+def parse_time(seconds):
+    horas = int (seconds // 3600)
+    minutos = int ((seconds % 3600) // 60)
+    segundos = int (seconds % 60)
+    resultado = f"{horas} horas, {minutos} minutos y {segundos} segundos"
+    return resultado
+
+
+
 @app.after_request
 def after_request(response):
     """Me aseguro de que los response no se almacenan en cache"""
@@ -70,7 +80,6 @@ def after_request(response):
     # TODO: control error busqueda LinkedIn (la busqueda no produjo resultados)
     # TODO: perguntar seleccionar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
-    # TODO: implementar un reloj que cuente el tiempo de scrapeo y lo muestre al finalizar
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
     # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
 
@@ -225,6 +234,8 @@ def busqueda():
             deep = ''
         
         if opt == '1':
+            start = 0.0
+            end = 0.0
             try:
                 start = time.time()
                 contact_info = []
@@ -241,7 +252,7 @@ def busqueda():
                     num_pags = math.ceil(resultados / 10)
 
                 pagina = 1
-                # Esto lo tendremos que modificar para limitar el número de perfiles visitados por día.
+                # TODO: Esto lo tendremos que modificar para limitar el número de perfiles visitados por día.
                 num_pags = 2
                 while pagina <= num_pags:
                     # Primero me posiciono en la página de búsqueda y espero un poco
@@ -283,7 +294,7 @@ def busqueda():
             except NoSuchElementException:
                 return('No se han encontrado resultados')
             finally:
-                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=round(end - start, 2))
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)))
 
         elif opt == '2':
             app.config['driver'].quit()
