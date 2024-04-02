@@ -75,7 +75,6 @@ def after_request(response):
     # TODO: A profundidad 3 -> visitar perfiles
     # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
     #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
-    # TODO: control error busqueda LinkedIn (la busqueda no produjo resultados)
     # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
@@ -245,67 +244,70 @@ def busqueda():
             deep = ''
         
         if opt == '1':
-            start = 0.0
+            start = time.time()
             end = 0.0
+            contact_info = []
+            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
+
+            # Si la busqueda no ha producido resultados, capturo la excepción y devuelvo un mensaje de error
             try:
-                start = time.time()
-                contact_info = []
-                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
-                str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
-                num_results = str_results.text.split(' ')
-                try:
-                    # Si el número de resultados es mayor a 999, el texto se divide en dos partes
-                    resultados = int(num_results[0])
-                except ValueError:
-                    buffer = num_results[1].split('.')
-                    resultados = int(buffer[0].join(buffer[1]))
-                finally:
-                    num_pags = math.ceil(resultados / 10)
-
-                pagina = 1
-                # TODO: Esto lo tendremos que modificar para limitar el número de perfiles visitados por día.
-                num_pags = 2
-                while pagina <= num_pags:
-                    # Primero me posiciono en la página de búsqueda y espero un poco
-                    app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
-                    time.sleep(random.randint(1, 4))
-
-                    # Construyo la lista de perfiles a visitar
-                    profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
-                    visit_profiles = [p for p in profiles]
-                    i = 1
-                    for p in visit_profiles:
-                        p_url = p.get_attribute('href')
-                        # app.config['driver'].execute_script(f"window.open('{p_url}');")
-                        usuario = extract_username(p_url)
-                        # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
-                        path = f'*//li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
-                        nombre = app.config['driver'].find_element(By.XPATH, path).text
-                        print(f'El perfil de {nombre} se identifica como {usuario}')
-                        perfiles_visitados.append(nombre)
-                        i += 1
-                        time.sleep(random.randint(1, 4))
-                    
-                    # Ahora construyo la lista de nombres propios
-                    '''
-                    nombres_usuarios = app.config['driver'].find_elements(By.XPATH, '//span[@aria-hidden="true"]')
-                    names = [n.text for n in nombres_usuarios if len(n.text) > 0]
-                    for n in names:
-                        perfiles_visitados.append(n)
-                    '''
-                    pagina += 1
-                '''    
-                archivo = 'datos_contacto.csv'
-                with open(archivo, mode='w', newline='') as f:
-                    writer = csv.writer(f)
-                    for row in contact_info:
-                        writer.writerow(row)
-                '''
-                end = time.time()
+                app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
             except NoSuchElementException:
-                return('No se han encontrado resultados')
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
+        
+            # Con esto averiguo cuantos resultados de busqueda se han producido.
+            str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
+            num_results = str_results.text.split(' ')
+            try:
+                # Si el número de resultados es mayor a 999, el texto se divide en dos partes
+                resultados = int(num_results[0])
+            except ValueError:
+                buffer = num_results[1].split('.')
+                resultados = int(buffer[0].join(buffer[1]))
             finally:
-                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)))
+                num_pags = math.ceil(resultados / 10)
+
+            pagina = 1
+            # TODO: Esto lo tendremos que modificar para limitar el número de perfiles visitados por día.
+            num_pags = 2
+            while pagina <= num_pags:
+                # Primero me posiciono en la página de búsqueda y espero un poco
+                app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
+                time.sleep(random.randint(1, 4))
+
+                # Construyo la lista de perfiles a visitar
+                profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                visit_profiles = [p for p in profiles]
+                i = 1
+                for p in visit_profiles:
+                    p_url = p.get_attribute('href')
+                    # app.config['driver'].execute_script(f"window.open('{p_url}');")
+                    usuario = extract_username(p_url)
+                    # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
+                    path = f'*//li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
+                    nombre = app.config['driver'].find_element(By.XPATH, path).text
+                    print(f'El perfil de {nombre} se identifica como {usuario}')
+                    perfiles_visitados.append(nombre)
+                    i += 1
+                    time.sleep(random.randint(1, 4))
+                
+                # Ahora construyo la lista de nombres propios
+                '''
+                nombres_usuarios = app.config['driver'].find_elements(By.XPATH, '//span[@aria-hidden="true"]')
+                names = [n.text for n in nombres_usuarios if len(n.text) > 0]
+                for n in names:
+                    perfiles_visitados.append(n)
+                '''
+                pagina += 1
+            '''    
+            archivo = 'datos_contacto.csv'
+            with open(archivo, mode='w', newline='') as f:
+                writer = csv.writer(f)
+                for row in contact_info:
+                    writer.writerow(row)
+            '''
+            end = time.time()
+            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)))
 
         elif opt == '2':
             app.config['driver'].quit()
