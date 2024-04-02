@@ -286,7 +286,12 @@ def busqueda():
                         # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         usuario = extract_username(p_url)
                         # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
-                        path = f'/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[1]/div/a/div/div/div/img'
+
+                        # Con este scrap puedo realizar la visita a los perfiles y quedarme al menos con su url
+                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[1]/div/a/div/div/div"
+
+                        # TODO: necesito otro scraper paralelo para recopilar el nombre y el cargo de cada perfil
+      
                         nombre = app.config['driver'].find_element(By.XPATH, path).text
                         print(f'El perfil de {nombre} se identifica como {usuario}')
                         perfiles_visitados.append(nombre)
