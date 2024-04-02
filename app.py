@@ -75,7 +75,6 @@ def after_request(response):
     # TODO: A profundidad 3 -> visitar perfiles
     # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
     #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
-    # TODO: control error login LinkedIn
     # TODO: control error busqueda LinkedIn (la busqueda no produjo resultados)
     # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
@@ -203,7 +202,7 @@ def acciones():
 def linklogin():
     if request.method == 'POST':
         app.config['driver'] = webdriver.Chrome()
-        app.config['driver'].maximize_window() # Prueba, a ver si esto es necesario o no.
+        app.config['driver'].maximize_window()
         usuario = request.form.get('username')
         contrasena = request.form.get('password')
         app.config['api'] = Linkedin(usuario, contrasena)
@@ -216,7 +215,11 @@ def linklogin():
         submit.click()
         time.sleep(random.randint(1, 4))
 
-        return render_template('busqueda.html', usuario=usuario, current_year=current_year)
+        # Compruebo si el acceso a LinkedIn se ha hecho correctamente
+        if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
+            return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
+        else:
+            return render_template('busqueda.html', usuario=usuario, current_year=current_year)
     else:
         return render_template('index.html', current_year=current_year)
 
