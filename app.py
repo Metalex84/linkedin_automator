@@ -257,7 +257,8 @@ def busqueda():
 
             except NoSuchElementException:
                 # Con esto averiguo cuantos resultados de busqueda se han producido.
-                str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
+                # str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
+                str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
                 num_results = str_results.text.split(' ')
                 try:
                     # Si el número de resultados es mayor a 999, el texto se divide en dos partes
@@ -285,7 +286,9 @@ def busqueda():
                         # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         usuario = extract_username(p_url)
                         # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
-                        path = f'*//li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
+                        # path = f'*//li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]'
+                        # OJO QUE ESTO NO ME LO ENCUENTRA
+                        path = f'/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]'
                         nombre = app.config['driver'].find_element(By.XPATH, path).text
                         print(f'El perfil de {nombre} se identifica como {usuario}')
                         perfiles_visitados.append(nombre)
