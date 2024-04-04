@@ -89,14 +89,11 @@ def after_request(response):
     return response
 
 
-    # TODO: arreglar bug de sesion (colapsar la navbar, mostrar lo de Salir, etc)
+    # TODO: que cuando finalice el proceso, vuelva a la pantalla de despues del login a no ser que el usuario haya hecho logout
     # TODO: implementar la funcion de escribir mensajes
     # TODO: implementar la funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
     # TODO: Función que actualice cuántos shots le quedan al usuario en el día
-    # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
-    # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
-    # TODO: A profundidad 3 -> visitar perfiles
     # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
     #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
     # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
@@ -349,18 +346,27 @@ def busqueda():
                     for p in visit_profiles:
                         p_url = p.get_attribute('href')
                         usuario = extract_username(p_url)
-
-                        # XPath para cada boton de "Enviar mensaje" 
-                        msg = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
-                        enviar_mensaje = app.config['driver'].find_element(By.XPATH, msg)
-                        enviar_mensaje.click()
-                        # TODO: implementar la escritura de mensajes
-
+    
                         # Recupero los datos del perfil sobre el que realizo la acción
                         path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
                         nombre = app.config['driver'].find_element(By.XPATH, path).text
                         print(f'El perfil de {nombre} se identifica como {usuario}')
                         perfiles_visitados.append(nombre)    
+
+                        # XPath para cada boton de "Enviar mensaje" 
+                        msg = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
+                        enviar_mensaje = app.config['driver'].find_element(By.XPATH, msg)
+                        enviar_mensaje.click()
+
+                        # TODO: implementar la escritura de mensajes (algun dia mediante DL...)
+                        # TODO: implementar una pagina intermedia con cuadro de texto para que el usuario pegue el mensaje a enviar 
+                        # TODO: quedarme solo con el primer nombre
+
+                        '''
+                        primernombre = nombre.split(' ')
+                        primernombre[0] = primernombre[0].capitalize()
+                        '''
+
                         i += 1
                         wait_random_time()
                     pagina += 1
