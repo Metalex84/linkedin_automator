@@ -1,17 +1,14 @@
 /* Size for brand */
-nav .navbar-brand
-{
+nav .navbar-brand {
     font-size: xx-large;
 }
 
-.btn
-{
+.btn {
     background-color: white;
     color: blue;
 }
 
-.btn:hover
-{
+.btn:hover {
     background-color: blue;
     color: white;
 }

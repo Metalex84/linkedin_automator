@@ -7,11 +7,11 @@ Resultados
 {% block main %}
 <h1>¡Todo listo!</h1>
 <h2>{{ tiempo }}</h2>
-<h2>{{ numero_perfiles }} perfiles visitados</h2>
+<h3><i>{{ numero_perfiles }} perfiles visitados</i></h3>
 <div class="container">
-    <ol class="list-group">
+    <ol>
         {% for profile in profiles %}
-        <li class="list-group-item">{{ profile }}</li>
+        <li class="text-primary">{{ profile }}</li>
         {% endfor %}
     </ol>
 </div>

@@ -41,7 +41,8 @@ current_year = datetime.now().year
 # Configuro la base de datos
 db = SQL("sqlite:///linkedin.db")
 
-# Funcion que parsea la url para extraer el nombre de usuario de LinkedIn
+
+# Funcion que manipula la url para extraer el nombre de usuario de LinkedIn
 def extract_username(url):
     parsed_url = urlparse(url)
     path_comp = parsed_url.path.split('/')
@@ -51,6 +52,7 @@ def extract_username(url):
         return None
     
 
+
 # Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos
 def parse_time(seconds):
     horas = int (seconds // 3600)
@@ -58,6 +60,25 @@ def parse_time(seconds):
     segundos = int (seconds % 60)
     resultado = f"{horas} horas, {minutos} minutos y {segundos} segundos"
     return resultado
+
+
+# Funcion que simplemente espera un tiempo aleatorio entre 1 y 7 segundos
+def wait_random_time():
+    time.sleep(random.randint(1, 7))
+
+
+
+# Funcion que devuelve el numero de paginas de resultados de busqueda en funcion del numero de resultados que se han producido
+def number_of_pages(str_results):
+    num_results = str_results.text.split(' ')
+    try:
+        # Si el número de resultados es mayor a 999, el texto se divide en dos partes
+        resultados = int(num_results[0])
+    except ValueError:
+        buffer = num_results[1].split('.')
+        resultados = int(buffer[0].join(buffer[1]))
+    finally:
+        return (math.ceil(resultados / 10))
 
 
 
@@ -69,6 +90,11 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+
+    # TODO: arreglar bug de sesion (colapsar la navbar, mostrar lo de Salir, etc)
+    # TODO: implementar la funcion de escribir mensajes
+    # TODO: implementar la funcion de enviar invitaciones
+    # TODO: implementar animación de espera mientras está funcionando
     # TODO: Función que actualice cuántos shots le quedan al usuario en el día
     # TODO: A profundidad 1 -> escribir mensajes a contactos. (NO COMBINAR PROFUNDIDADES)
     # TODO: A profundidad 2 -> enviar invitaciones a contactos y visita de perfiles
@@ -79,6 +105,7 @@ def after_request(response):
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
     # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
+    # TODO: implementar mi propia API de conexion con la BD para no usar la de CS50
 
 
 @app.route('/')
@@ -212,7 +239,7 @@ def linklogin():
         password.send_keys(contrasena)
         submit = app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]')
         submit.click()
-        time.sleep(random.randint(1, 4))
+        wait_random_time()
 
         # Compruebo si el acceso a LinkedIn se ha hecho correctamente
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
@@ -244,6 +271,7 @@ def busqueda():
             deep = ''
         
         if opt == '1':
+            # Comienzo a contar el tiempo
             start = time.time()
             end = 0.0
             contact_info = []
@@ -252,51 +280,54 @@ def busqueda():
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el empty-state;
             try:
                 app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
-                # Si la excepción no salta, es que no hay resultados de búsqueda y puedo saltar a la última pantalla
+                # Si la excepción no salta, es que no hay resultados de búsqueda. Por lo tanto, voy a la última página notificando que no hay resultados
                 return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
 
             except NoSuchElementException:
                 # Con esto averiguo cuantos resultados de busqueda se han producido.
                 # str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
                 str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
-                num_results = str_results.text.split(' ')
-                try:
-                    # Si el número de resultados es mayor a 999, el texto se divide en dos partes
-                    resultados = int(num_results[0])
-                except ValueError:
-                    buffer = num_results[1].split('.')
-                    resultados = int(buffer[0].join(buffer[1]))
-                finally:
-                    num_pags = math.ceil(resultados / 10)
 
+                # Calculo el numero total de paginas de busqueda
+                num_pags = number_of_pages(str_results)
+                
                 pagina = 1
-                # TODO: Esto lo tendremos que modificar para limitar el número de perfiles visitados por día.
-                num_pags = 2
                 while pagina <= num_pags:
                     # Primero me posiciono en la página de búsqueda y espero un poco
                     app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
-                    time.sleep(random.randint(1, 4))
+                    wait_random_time()
 
                     # Construyo la lista de perfiles a visitar
                     profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
                     visit_profiles = [p for p in profiles]
+                    # El contador "i" es para iterar por la lista de perfiles que se visualizan en cada página
                     i = 1
                     for p in visit_profiles:
                         p_url = p.get_attribute('href')
+                        # Si quiero abrir en una nueva pestaña:
                         # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         usuario = extract_username(p_url)
                         # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
 
-                        # Con este scrap puedo realizar la visita a los perfiles y quedarme al menos con su url
-                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[1]/div/a/div/div/div"
-
-                        # TODO: necesito otro scraper paralelo para recopilar el nombre y el cargo de cada perfil
-      
-                        nombre = app.config['driver'].find_element(By.XPATH, path).text
-                        print(f'El perfil de {nombre} se identifica como {usuario}')
-                        perfiles_visitados.append(nombre)
-                        i += 1
-                        time.sleep(random.randint(1, 4))
+                        # Este path es el de los iconos redondos de la foto
+                        # path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[1]/div/a/div/div/div"
+                        # TODO: necesito otro find_element del XPath del cargo que ocupa
+                        
+                        # Si no encuentra el elemento del nombre, capturo excepcion y salto al siguiente
+                        path = ""
+                        try:
+                            # Este path es el del nombre completo, pero si pone "Miembro de LinkedIn", no existe
+                            path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
+                             # Este path es del nombre cuando pone "Miembro de LinkedIn"
+                            # path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]" 
+                            nombre = app.config['driver'].find_element(By.XPATH, path).text
+                            print(f'El perfil de {nombre} se identifica como {usuario}')
+                            perfiles_visitados.append(nombre)
+                        except NoSuchElementException:
+                            pass
+                        finally:
+                            i += 1
+                            wait_random_time()
                     
                     # Ahora construyo la lista de nombres propios
                     '''
@@ -314,7 +345,7 @@ def busqueda():
                         writer.writerow(row)
                 '''
                 end = time.time()
-                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)))
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
             
         elif opt == '2':
             app.config['driver'].quit()
