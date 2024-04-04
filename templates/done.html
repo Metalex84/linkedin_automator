@@ -11,7 +11,7 @@ Resultados
 <div class="container">
     <ol>
         {% for profile in profiles %}
-        <li class="text-primary">{{ profile }}</li>
+        <li class="text-primary">{{ profile.nombre }}, {{ profile.rol }}</li>
         {% endfor %}
     </ol>
 </div>
