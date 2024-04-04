@@ -7,7 +7,6 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
 from werkzeug.security import generate_password_hash, check_password_hash
-from linkedin_api import Linkedin
 
 from cs50 import SQL
 
@@ -34,7 +33,6 @@ Session(app)
 # Configuro variables globales
 app.config['opcion'] = None
 app.config['driver'] = None
-app.config['api'] = None
 app.config['counter'] = 0
 current_year = datetime.now().year
 
@@ -231,7 +229,6 @@ def linklogin():
         app.config['driver'].maximize_window()
         usuario = request.form.get('username')
         contrasena = request.form.get('password')
-        app.config['api'] = Linkedin(usuario, contrasena)
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
@@ -259,36 +256,25 @@ def busqueda():
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
 
-        # Recupero la profundidad de la red (contactos de segundo grado, de tercer grado o todos los contactos)
-        grado = request.form.get('grado')
-        if grado == 'grade1':
-            deep = '&network=%5B"F"%5D'
-        elif grado == 'grade2':
-            deep = '&network=%5B"S"%5D'
-        elif grado == 'grade3':
-            deep = '&network=%5B"O"%5D'
-        else:
-            deep = ''
-        
         if opt == '1':
+            ''' VISITAR PERFILES / RECOPILAR INFORMACIÓN BÁSICA'''
+            # Esta opcion excluye los contactos de primer grado, por lo que me quedo solo con los contactos de profundidad 2 y 3
+            deep = '&network=%5B"S"%2C"O"%5D'
+            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
+            
             # Comienzo a contar el tiempo
             start = time.time()
             end = 0.0
-            contact_info = []
-            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
-
+            
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el empty-state;
             try:
                 app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
-                # Si la excepción no salta, es que no hay resultados de búsqueda. Por lo tanto, voy a la última página notificando que no hay resultados
+                # Si la excepción no salta, es que no se han producido resultados de búsqueda. Por lo tanto, voy a la última página notificando que no hay resultados
                 return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
 
             except NoSuchElementException:
-                # Con esto averiguo cuantos resultados de busqueda se han producido.
-                # str_results = app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "pb2 t-black--light t-14")]')
+                # Con esto averiguo cuantos resultados de busqueda se han producido y calculo el numero total de paginas.
                 str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
-
-                # Calculo el numero total de paginas de busqueda
                 num_pags = number_of_pages(str_results)
                 
                 pagina = 1
@@ -300,26 +286,21 @@ def busqueda():
                     # Construyo la lista de perfiles a visitar
                     profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
                     visit_profiles = [p for p in profiles]
-                    # El contador "i" es para iterar por la lista de perfiles que se visualizan en cada página
+
                     i = 1
                     for p in visit_profiles:
                         p_url = p.get_attribute('href')
                         # Si quiero abrir en una nueva pestaña:
                         # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         usuario = extract_username(p_url)
-                        # contact_info.append(app.config['api'].get_profile_contact_info(usuario)
 
-                        # Este path es el de los iconos redondos de la foto
-                        # path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[1]/div/a/div/div/div"
                         # TODO: necesito otro find_element del XPath del cargo que ocupa
                         
                         # Si no encuentra el elemento del nombre, capturo excepcion y salto al siguiente
                         path = ""
                         try:
-                            # Este path es el del nombre completo, pero si pone "Miembro de LinkedIn", no existe
+                            # Este path es el del nombre completo, pero si pone "Miembro de LinkedIn", no existe, por lo que se lanza otra excepcion
                             path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
-                             # Este path es del nombre cuando pone "Miembro de LinkedIn"
-                            # path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]" 
                             nombre = app.config['driver'].find_element(By.XPATH, path).text
                             print(f'El perfil de {nombre} se identifica como {usuario}')
                             perfiles_visitados.append(nombre)
@@ -328,40 +309,124 @@ def busqueda():
                         finally:
                             i += 1
                             wait_random_time()
-                    
-                    # Ahora construyo la lista de nombres propios
-                    '''
-                    nombres_usuarios = app.config['driver'].find_elements(By.XPATH, '//span[@aria-hidden="true"]')
-                    names = [n.text for n in nombres_usuarios if len(n.text) > 0]
-                    for n in names:
-                        perfiles_visitados.append(n)
-                    '''
                     pagina += 1
-                '''    
-                archivo = 'datos_contacto.csv'
-                with open(archivo, mode='w', newline='') as f:
-                    writer = csv.writer(f)
-                    for row in contact_info:
-                        writer.writerow(row)
-                '''
                 end = time.time()
+                app.config['driver'].quit()
                 return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
-            
+         
         elif opt == '2':
-            app.config['driver'].quit()
-            return('Escribir mensajes no implementado aun')
-            # TODO
-            
-        elif opt == '3':
-            app.config['driver'].quit()
-            return('Enviar invitaciones no implementado aun')
-            # Para conectar seria: app.config['driver'].execute_script("arguments[0].click();", p)
-            # TODO
+            ''' ENVIAR MENSAJES A PERSONAS DE MI RED DE CONTACTOS '''
+            # El envio de mensajes solo tiene efecto con los contactos de primer grado (profundidad 1):
+            deep = '&network=%5B"F"%5D'
+            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
 
+            # Comienzo a contar el tiempo
+            start = time.time()
+            end = 0.0
+            
+            # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el empty-state;
+            try:
+                app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
+                # Si la excepción no salta, es que no se han producido resultados de búsqueda. Por lo tanto, voy a la última página notificando que no hay resultados
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
+
+            except NoSuchElementException:
+                # Con esto averiguo cuantos resultados de busqueda se han producido y calculo el numero total de paginas.
+                str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
+                num_pags = number_of_pages(str_results)
+                
+                pagina = 1
+                while pagina <= num_pags:
+                    # Primero me posiciono en la página de búsqueda y espero un poco
+                    app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
+                    wait_random_time()
+
+                    # Construyo la lista de perfiles a visitar
+                    profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                    visit_profiles = [p for p in profiles]
+
+                    i = 1
+                    for p in visit_profiles:
+                        p_url = p.get_attribute('href')
+                        usuario = extract_username(p_url)
+
+                        # XPath para cada boton de "Enviar mensaje" 
+                        msg = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
+                        enviar_mensaje = app.config['driver'].find_element(By.XPATH, msg)
+                        enviar_mensaje.click()
+                        # TODO: implementar la escritura de mensajes
+
+                        # Recupero los datos del perfil sobre el que realizo la acción
+                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
+                        nombre = app.config['driver'].find_element(By.XPATH, path).text
+                        print(f'El perfil de {nombre} se identifica como {usuario}')
+                        perfiles_visitados.append(nombre)    
+                        i += 1
+                        wait_random_time()
+                    pagina += 1
+                end = time.time()
+                app.config['driver'].quit()
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
+                    
+        elif opt == '3':
+            ''' ENVIAR INVITACIONES DE CONTACTO '''
+            # Esta acción solo puede ser realizada con contactos de segundo grado (profundidad 2 de red)
+            deep = '&network=%5B"S"%5D'
+            app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
+
+            # Comienzo a contar el tiempo
+            start = time.time()
+            end = 0.0
+            
+            # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el empty-state;
+            try:
+                app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
+                # Si la excepción no salta, es que no se han producido resultados de búsqueda. Por lo tanto, voy a la última página notificando que no hay resultados
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
+
+            except NoSuchElementException:
+                # Con esto averiguo cuantos resultados de busqueda se han producido y calculo el numero total de paginas.
+                str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
+                num_pags = number_of_pages(str_results)
+                
+                pagina = 1
+                while pagina <= num_pags:
+                    # Primero me posiciono en la página de búsqueda y espero un poco
+                    app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
+                    wait_random_time()
+
+                    # Construyo la lista de perfiles a visitar
+                    profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
+                    visit_profiles = [p for p in profiles]
+
+                    i = 1
+                    for p in visit_profiles:
+                        p_url = p.get_attribute('href')
+                        usuario = extract_username(p_url)
+
+                        # TODO: para cada "Conectar":
+                        button = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"
+                        conectar = app.config['driver'].find_element(By.XPATH, button)
+                        conectar.click()
+                        # TODO: implementar la solicitud de contactos
+
+                        # Recupero los datos del perfil sobre el que realizo la acción
+                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
+                        nombre = app.config['driver'].find_element(By.XPATH, path).text
+                        print(f'El perfil de {nombre} se identifica como {usuario}')
+                        perfiles_visitados.append(nombre)    
+                        i += 1
+                        wait_random_time()
+                    pagina += 1
+                end = time.time()
+                app.config['driver'].quit()
+                return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
+    
         else:
             app.config['driver'].quit()
             return('Aqui ha pasado algo raro...')
     else:
+        app.config['driver'].quit()
         return render_template('index.html', current_year=current_year)
 
 
