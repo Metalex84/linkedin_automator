@@ -18,30 +18,38 @@ from helpers import apology, login_required
 import random
 import time
 import math
-import csv
+# import csv
 
 
-# Configuro la aplicacion
 app = Flask(__name__)
 
-# Configuro la sesion para utilizar el sistema de archivos en lugar de cookies
+''' Configuro la sesion para utilizar el sistema de archivos en lugar de cookies '''
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 
-# Configuro variables globales
+''' Configuro variables globales '''
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['counter'] = 0
 current_year = datetime.now().year
 
-# Configuro la base de datos
+''' Configuro la base de datos '''
 db = SQL("sqlite:///linkedin.db")
 
 
-# Funcion que manipula la url para extraer el nombre de usuario de LinkedIn
+
+class Persona:
+    ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
+    def __init__(self, nombre, rol):
+        self.nombre = nombre
+        self.rol = rol
+
+
+
 def extract_username(url):
+    ''' Funcion que manipula la url para extraer el nombre de usuario de LinkedIn '''
     parsed_url = urlparse(url)
     path_comp = parsed_url.path.split('/')
     if len(path_comp) > 2:
@@ -51,8 +59,8 @@ def extract_username(url):
     
 
 
-# Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos
 def parse_time(seconds):
+    ''' Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos'''
     horas = int (seconds // 3600)
     minutos = int ((seconds % 3600) // 60)
     segundos = int (seconds % 60)
@@ -60,14 +68,15 @@ def parse_time(seconds):
     return resultado
 
 
-# Funcion que simplemente espera un tiempo aleatorio entre 1 y 7 segundos
+
 def wait_random_time():
+    ''' Funcion que fuerza un tiempo de espera aleatorio entre 1 y 7 segundos para simular comportamiento humano '''
     time.sleep(random.randint(1, 7))
 
 
 
-# Funcion que devuelve el numero de paginas de resultados de busqueda en funcion del numero de resultados que se han producido
 def number_of_pages(str_results):
+    ''' Funcion que devuelve el numero de paginas de resultados de busqueda en funcion del numero de resultados que se han producido '''
     num_results = str_results.text.split(' ')
     try:
         # Si el número de resultados es mayor a 999, el texto se divide en dos partes
@@ -82,7 +91,7 @@ def number_of_pages(str_results):
 
 @app.after_request
 def after_request(response):
-    """Me aseguro de que los response no se almacenan en cache"""
+    ''' Me aseguro de que las páginas no se almacenen en la cache del navegador'''
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
@@ -94,8 +103,6 @@ def after_request(response):
     # TODO: implementar la funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
     # TODO: Función que actualice cuántos shots le quedan al usuario en el día
-    # TODO: tratar de recopilar nombre y cargo de cada perfil antes de visitarlo. 
-    #       Si no se puede, quedarme con nombre extraido de url y utilizar linkedin_api para obtener los datos.
     # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
     # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
@@ -114,36 +121,31 @@ def index():
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    # Borro posibles sesiones abiertas
+    '''
+    1. Borro posibles sesiones abiertas
+    2. Me aseguro de que no hay campos vacios
+    3. Pregunto a la BD si el usuario existe y me aseguro de que la contraseña es correcta
+    4. Almaceno el usuario que se ha logueado
+    5. Si todo fue bien, redirijo a la página de acciones
+    '''
+
     session.clear()
 
-    # Me aseguro de que vengo del formmulario de login
     if request.method == 'POST':
-        
-        # Y me aseguro de que no hay campos vacios
         if not request.form.get('username'):
             return apology('¡Introduce tu nombre de usuario!', 403)
         elif not request.form.get('password'):
             return apology('¡Introduce tu contraseña!', 403)
         
-        # Pregunto a la base de datos si el usuario existe
-        cursor = db.execute(
-            "SELECT * FROM usuarios WHERE usuario = ?", request.form.get('username')
-        )
+        cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", request.form.get('username'))
 
-        # Y me aseguro de que la contraseña es correcta
-        if len(cursor) != 1 or not check_password_hash(
-            cursor[0]["password"], request.form.get('password')
-        ):
+        if len(cursor) != 1 or not check_password_hash(cursor[0]["password"], request.form.get('password')):
             return apology('¡Usuario o contraseña incorrectos!', 403)
         
-        # Almaceno el usuario que se ha logueado
         session["user_id"] = cursor[0]["id"]
 
-        # Si todo fue bien, redirijo a la página de acciones
         return render_template("actions.html", current_year=current_year, username=request.form.get('username'))
 
-    # Si vengo por GET, muestro el formulario de login directamente
     else:
         return render_template('index.html', current_year=current_year)
 
@@ -151,17 +153,27 @@ def login():
 
 @app.route("/logout")
 def logout():
+    '''
+    Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
+    '''
+
     print("Ultima conexion: ", datetime.now())
-    db.execute(
-        "UPDATE usuarios SET connection = ? WHERE usuario = ?", datetime.now(), session["user_id"]
-        )
+
+    db.execute("UPDATE usuarios SET connection = ? WHERE usuario = ?", datetime.now(), session["user_id"])
+
     session.clear()
+
     return render_template('index.html', current_year=current_year)
 
 
 
 @app.route('/register', methods=['POST', 'GET'])
 def register():
+    '''
+    1. Recupero los datos del formmulario de registro controlando posibles errores
+    2. Aplico una función hash para almacenar la contraseña en la BD
+    3. Asigno automáticamente 120 shots a cada usuario nuevo
+    '''
 
     if request.method == "POST":
         username = request.form.get('username')
@@ -181,9 +193,7 @@ def register():
         elif password != confirmation:
             return apology("¡Las contraseñas no coinciden!", 400)
         else:
-            # Funcion de hash para la contraseña
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            # Inserto el usuario en la base de datos
             db.execute("INSERT INTO usuarios (usuario, password, shots) VALUES (?, ?, ?)", username, hash, 120)
             return redirect("/")
     else:
@@ -194,9 +204,11 @@ def register():
 @app.route('/acciones', methods=['POST', 'GET'])
 @login_required
 def acciones():
-    # Si vengo por POST, recojo la opción seleccionada por el usuario
+    '''
+    1. Recojo la opción seleccionada por el usuario, solo si tiene acciones disponibles restantes
+    2. Devuelvo la acción seleccionada en forma de texto
+    '''
     if request.method == 'POST':
-        # Esto solo se ejecutará si el usuario tiene acciones disponibles en el día.
         acciones_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
         if acciones_restantes[0]['shots'] == 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
@@ -212,7 +224,6 @@ def acciones():
                 accion = 'enviar invitaciones'
             return render_template('linklogin.html', current_year=current_year, accion=accion)
         
-    # Si vengo por GET, redirijo a la página de login
     else:
         return render_template('index.html', current_year=current_year)
 
@@ -221,6 +232,10 @@ def acciones():
 @app.route('/linklogin', methods=['POST', 'GET'])
 @login_required
 def linklogin():
+    '''
+    1. Abro navegador, uso las claves de acceso de LinkedIn y redirijo a la página de busqueda
+    2. Controlo posible fallo de login, devolviendo un mensaje de error
+    '''
     if request.method == 'POST':
         app.config['driver'] = webdriver.Chrome()
         app.config['driver'].maximize_window()
@@ -235,7 +250,6 @@ def linklogin():
         submit.click()
         wait_random_time()
 
-        # Compruebo si el acceso a LinkedIn se ha hecho correctamente
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
@@ -248,18 +262,24 @@ def linklogin():
 @app.route('/busqueda', methods=['POST', 'GET'])
 @login_required
 def busqueda():
+    '''
+    1. Recupero la opción y en base a ella ejecuto unas u otras funciones
+    2. Recupero el texto de busqueda y realizo la busqueda 
+    '''
     if request.method == 'POST':
         opt = app.config['opcion']
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
 
         if opt == '1':
-            ''' VISITAR PERFILES / RECOPILAR INFORMACIÓN BÁSICA'''
-            # Esta opcion excluye los contactos de primer grado, por lo que me quedo solo con los contactos de profundidad 2 y 3
+            '''
+            VISITAR PERFILES / RECOPILAR INFORMACIÓN BÁSICA
+            Esta opcion excluye los contactos de primer grado, por lo que me quedo solo con los contactos de profundidad 2 y 3
+            '''
+    
             deep = '&network=%5B"S"%2C"O"%5D'
             app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
             
-            # Comienzo a contar el tiempo
             start = time.time()
             end = 0.0
             
@@ -271,7 +291,7 @@ def busqueda():
 
             except NoSuchElementException:
                 # Con esto averiguo cuantos resultados de busqueda se han producido y calculo el numero total de paginas.
-                str_results = app.config['driver'].find_element(By.XPATH, '//html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
+                str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2/div')
                 num_pags = number_of_pages(str_results)
                 
                 pagina = 1
@@ -290,17 +310,18 @@ def busqueda():
                         # Si quiero abrir en una nueva pestaña:
                         # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         usuario = extract_username(p_url)
-
-                        # TODO: necesito otro find_element del XPath del cargo que ocupa
                         
                         # Si no encuentra el elemento del nombre, capturo excepcion y salto al siguiente
                         path = ""
                         try:
                             # Este path es el del nombre completo, pero si pone "Miembro de LinkedIn", no existe, por lo que se lanza otra excepcion
-                            path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
-                            nombre = app.config['driver'].find_element(By.XPATH, path).text
-                            print(f'El perfil de {nombre} se identifica como {usuario}')
-                            perfiles_visitados.append(nombre)
+                            path_name = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
+                            path_role = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[2]"
+                            nombre = app.config['driver'].find_element(By.XPATH, path_name).text
+                            rol = app.config['driver'].find_element(By.XPATH, path_role).text
+                            print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                            contacto = Persona(nombre, rol)
+                            perfiles_visitados.append(contacto)
                         except NoSuchElementException:
                             pass
                         finally:
@@ -312,12 +333,14 @@ def busqueda():
                 return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
          
         elif opt == '2':
-            ''' ENVIAR MENSAJES A PERSONAS DE MI RED DE CONTACTOS '''
-            # El envio de mensajes solo tiene efecto con los contactos de primer grado (profundidad 1):
+            ''' 
+            ENVIAR MENSAJES A PERSONAS DE MI RED DE CONTACTOS 
+            Esto solo tiene efecto con los contactos de primer grado (profundidad 1)
+            '''
+            
             deep = '&network=%5B"F"%5D'
             app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
 
-            # Comienzo a contar el tiempo
             start = time.time()
             end = 0.0
             
@@ -348,19 +371,22 @@ def busqueda():
                         usuario = extract_username(p_url)
     
                         # Recupero los datos del perfil sobre el que realizo la acción
-                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
-                        nombre = app.config['driver'].find_element(By.XPATH, path).text
-                        print(f'El perfil de {nombre} se identifica como {usuario}')
-                        perfiles_visitados.append(nombre)    
+                        path_name = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
+                        path_role = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[2]"
+ 
+                        nombre = app.config['driver'].find_element(By.XPATH, path_name).text
+                        rol = app.config['driver'].find_element(By.XPATH, path_role).text
+                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        contacto = Persona(nombre, rol)
+                        perfiles_visitados.append(contacto)    
 
                         # XPath para cada boton de "Enviar mensaje" 
-                        msg = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
+                        msg = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
                         enviar_mensaje = app.config['driver'].find_element(By.XPATH, msg)
                         enviar_mensaje.click()
 
-                        # TODO: implementar la escritura de mensajes (algun dia mediante DL...)
-                        # TODO: implementar una pagina intermedia con cuadro de texto para que el usuario pegue el mensaje a enviar 
-                        # TODO: quedarme solo con el primer nombre
+                        # TODO: implementar un cuadro de texto para que el usuario redacte el mensaje 
+                        # TODO: para la personalizacion, quedarme solo con el primer nombre
 
                         '''
                         primernombre = nombre.split(' ')
@@ -375,12 +401,14 @@ def busqueda():
                 return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
                     
         elif opt == '3':
-            ''' ENVIAR INVITACIONES DE CONTACTO '''
-            # Esta acción solo puede ser realizada con contactos de segundo grado (profundidad 2 de red)
+            '''
+            ENVIAR INVITACIONES DE CONTACTO
+            Esta acción solo puede ser realizada con contactos de segundo grado (profundidad 2 de red)
+            '''
+
             deep = '&network=%5B"S"%5D'
             app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
 
-            # Comienzo a contar el tiempo
             start = time.time()
             end = 0.0
             
@@ -411,16 +439,19 @@ def busqueda():
                         usuario = extract_username(p_url)
 
                         # TODO: para cada "Conectar":
-                        button = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"
+                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"
                         conectar = app.config['driver'].find_element(By.XPATH, button)
                         conectar.click()
                         # TODO: implementar la solicitud de contactos
 
                         # Recupero los datos del perfil sobre el que realizo la acción
-                        path = f"/html/body/div[6]/div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
-                        nombre = app.config['driver'].find_element(By.XPATH, path).text
-                        print(f'El perfil de {nombre} se identifica como {usuario}')
-                        perfiles_visitados.append(nombre)    
+                        path_name = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
+                        path_role = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[2]"
+                        nombre = app.config['driver'].find_element(By.XPATH, path_name).text
+                        rol = app.config['driver'].find_element(By.XPATH, path_role).text
+                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        contacto = Persona(nombre, rol)
+                        perfiles_visitados.append(contacto)
                         i += 1
                         wait_random_time()
                     pagina += 1
