@@ -6,10 +6,12 @@
 
 {% block main %}
     <h1>¡Todo listo!</h1>
-    <h2>Tiempo total: {{ tiempo }}</h2>
-    <ul>
+    <h2>{{ tiempo }}</h2>
+    <div class="container">
+    <ul class="list-group">
         {% for profile in profiles %}
-            <li>{{ profile }}</li>
+            <li class="list-group-item">{{ profile }}</li>
         {% endfor %}
     </ul>
+    </div>
 {% endblock %}
