@@ -1,25 +1,26 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Crea tu cuenta
+Crea tu cuenta
 {% endblock %}
 
 {% block main %}
-    <form action="/register" method="post">
-        <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username" placeholder="Nombre de usuario" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-50" name="password" placeholder="Contraseña" type="password">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir contraseña" type="password">
-        </div>
-        <div class="mb-3">
-            <button class="btn btn-primary" type="submit">Crear mi cuenta</button>
-        </div>
-        <div class="mb-3">
-            <i>* Utiliza como nombre de usuario tu correo corporativo</i>
-        </div>
-    </form>
+<form action="/register" method="post">
+    <div class="mb-3">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username"
+            placeholder="Nombre de usuario" type="text">
+    </div>
+    <div class="mb-3">
+        <input class="form-control mx-auto w-50" name="password" placeholder="Contraseña" type="password">
+    </div>
+    <div class="mb-3">
+        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir contraseña" type="password">
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-primary" type="submit">Crear mi cuenta</button>
+    </div>
+    <div class="mb-3">
+        <i>* Utiliza como nombre de usuario tu correo corporativo</i>
+    </div>
+</form>
 {% endblock %}
