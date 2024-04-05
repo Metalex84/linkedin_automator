@@ -20,23 +20,25 @@ import time
 
 app = Flask(__name__)
 
+
+
 ''' Configuro la session para utilizar el sistema de archivos en lugar de cookies '''
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 
+
 ''' Configuro variables globales '''
 app.config['opcion'] = None
 app.config['driver'] = None
-app.config['counter'] = 0
 current_year = datetime.now().year
+
+
 
 ''' Configuro la base de datos '''
 db = SQL("sqlite:///linkedin.db")
 
-
-    # TODO: que cuando finalice el proceso, vuelva a la pantalla de despues del login a no ser que el usuario haya hecho logout
     # TODO: implementar la funcion de escribir mensajes
     # TODO: implementar la funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
@@ -62,9 +64,12 @@ def after_request(response):
 @app.route('/')
 @login_required
 def index():
-    ''' De momento solo muestro el nombre de usuario en la página principal para verificar que el login se ha producido '''
-    db.execute("SELECT usuario FROM usuarios WHERE id = ?", session["user_id"])
-    return render_template('index.html', current_year=current_year)
+    if "user_id" in session:
+        username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
+        return render_template('actions.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
+        
+    else:
+        return render_template('index.html', current_year=current_year)
 
 
 
@@ -106,9 +111,9 @@ def logout():
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
     print("Ultima conexion: ", datetime.now())
-    db.execute("UPDATE usuarios SET connection = ? WHERE usuario = ?", datetime.now(), session["user_id"])
+    db.execute("UPDATE usuarios SET connection = ? WHERE id = ?", datetime.now(), session["user_id"])
     session.clear()
-    return render_template('index.html', current_year=current_year)
+    return redirect('/')
 
 
 
@@ -170,7 +175,11 @@ def acciones():
             return render_template('linklogin.html', current_year=current_year, accion=accion)
         
     else:
-        return render_template('index.html', current_year=current_year)
+        if "user_id" in session:
+            username = db.execute("SELECT usuario FROM usuarios WHERE id = ?", session["user_id"])
+            return render_template('actions.html', current_year=current_year, username=username[0]["usuario"])
+        else:
+            return render_template('index.html', current_year=current_year)
 
 
 
@@ -202,6 +211,15 @@ def linklogin():
     else:
         return render_template('index.html', current_year=current_year)
 
+
+
+@app.route('/viewprofile', methods=['GET'])
+@login_required
+def viewprofile():
+    username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
+    ''' ¿Mereceria la pena usar un objeto en vez de tratar los datos del usuario por separado? '''
+    return render_template('viewprofile.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
+        
 
 
 @app.route('/busqueda', methods=['POST', 'GET'])

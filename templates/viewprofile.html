@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Area privada de {{ username }}
+{% endblock %}
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<header class="alert alert-primary border text-center" role="alert">
+    {{ message }}
+</header>
+{% endif %}
+{% endwith %}
+
+{% block main %}
+<div class="container text-center mb-5">
+    <div class="form-check form-check-inline">
+        <h2>Informacion del perfil</h2>
+    </div>
+    <div class="mb-3">
+        <h3>Nombre de usuario: {{ username }}</h3>
+        <h3>Ultima conexion: {{ connection }}</h3>
+        <h3>Shots restantes hoy: {{ shots }}</h3>
+    </div>
+    <!-- TODO: implementar esto a medida que la BD tenga más campos-->
+
+</div>
+
+{% endblock %}
