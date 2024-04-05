@@ -39,19 +39,20 @@ current_year = datetime.now().year
 ''' Configuro la base de datos '''
 db = SQL("sqlite:///linkedin.db")
 
-    # TODO: implementar una pantalla intermedia que permita al usuario escribir un speech para el envio de mensajes
-    # TODO: implementar la funcion de escribir mensajes
-    # TODO: implementar la funcion de enviar invitaciones
+    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com
+    # TODO: en form login LinkedIn, añadir estilo para ver u ocultar password como en login general
+    # TODO: funcion de escribir mensajes
+    # TODO: funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
     # TODO: Función que actualice cuántos shots le quedan al usuario en el día
     # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
-    # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
-    # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
-    # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
-    # TODO: implementar mi propia API de conexion con la BD para no usar la de CS50
+    # TODO: contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
+    # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
+    # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
+    # TODO: mi propia API de conexion con la BD para no usar la de CS50
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
-    # TODO: implementar la ayuda del sistema
-    # TODO: implementar un historial de acciones realizadas
+    # TODO: ayuda del sistema
+    # TODO: rellenar y guardar un historial de acciones realizadas
 
 
 
@@ -114,7 +115,6 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-    print("Ultima conexion: ", datetime.now())
     db.execute("UPDATE usuarios SET connection = ? WHERE id = ?", datetime.now(), session["user_id"])
     session.clear()
     return redirect('/')

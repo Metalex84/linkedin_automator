@@ -2,6 +2,11 @@
 
 {% block title %}
 Bienvenido, {{ username }}
+<style>
+    #speech {
+        display: none;
+    }
+</style>
 {% endblock %}
 
 {% with messages = get_flashed_messages() %}
@@ -16,20 +21,49 @@ Bienvenido, {{ username }}
 <div class="container text-center mb-5">
     <div class="form-check form-check-inline">
         <h2>Hola, {{ username }}, ¿qué deseas hacer?</h2>
+        <form action="/acciones" method="post" class="d-flex justify-content-center">
+            <div class="form-check form-check-inline">
+                <select id="opciones" name="opciones" class="form-select" required>
+                    <option value="" selected>Selecciona una opción</option>
+                    <option value="1">Visitar perfiles</option>
+                    <option value="2">Escribir mensajes</option>
+                    <option value="3">Enviar invitaciones</option>
+                </select>
+            </div>
+            <div class="form-check form-check-inline">
+                <button class="btn btn-primary" type="submit">Continuar</button>
+            </div>
+        </form>
     </div>
-    <form action="/acciones" method="post" class="d-flex justify-content-center">
-        <div class="form-check form-check-inline">
-            <select name="opciones" class="form-select" required>
-                <option value="" selected>Selecciona una opción</option>
-                <option value="1">Visitar perfiles</option>
-                <option value="2">Escribir mensajes</option>
-                <option value="3">Enviar invitaciones</option>
-            </select>
-        </div>
-        <div class="form-check form-check-inline">
-            <button class="btn btn-primary" type="submit">Continuar</button>
-        </div>
-    </form>
 </div>
+<!-- Esto solo se muestra si el usuario tiene seleccionada la opción 2 "Escribir mensajes"-->
+<div class="container text-center mb-5" id="speech" name="speech">
+    <label for="mensaje" class="form-control font-weight-bold">Escribe un mensaje para tus contactos. <i>En el lugar del nombre, escribe [[]]</i></label>
+    <textarea class="form-control form-control-lg" id="mensaje" name="mensaje" type="text" rows=10 cols=50 placeholder="Hola [[]], ...(tu mensaje)... "
+        required></textarea>
+</div>
+<script>
+    /**
+    * Funcion para colapsar o expandir un div con el cuadro de texto de enviar mensajes
+    */
+    document.addEventListener('DOMContentLoaded', function () {
+        var selectElement = document.getElementById('opciones');
+        var textareaContainer = document.getElementById('speech');
 
+        // Función para mostrar u ocultar el textarea según la opción seleccionada
+        function toggleTextarea() {
+            if (selectElement.value === '2') {
+                textareaContainer.style.display = 'block'; // Muestra el textarea
+            } else {
+                textareaContainer.style.display = 'none'; // Oculta el textarea
+            }
+        }
+
+        // Escucha el evento 'change' en el select para mostrar u ocultar el textarea
+        selectElement.addEventListener('change', toggleTextarea);
+
+        // Llama a la función al cargar la página para asegurar que el textarea esté oculto si la opción por defecto no es la tercera
+        toggleTextarea();
+    });
+</script>
 {% endblock %}
