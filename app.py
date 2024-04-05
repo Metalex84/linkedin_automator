@@ -10,20 +10,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from cs50 import SQL
 
-from urllib.parse import urlparse
 from datetime import datetime
 
-from helpers import apology, login_required
+from helpers import Persona, extract_username, wait_random_time, parse_time, number_of_pages, apology, login_required
 
-import random
 import time
-import math
 # import csv
 
 
 app = Flask(__name__)
 
-''' Configuro la sesion para utilizar el sistema de archivos en lugar de cookies '''
+''' Configuro la session para utilizar el sistema de archivos en lugar de cookies '''
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
@@ -39,53 +36,16 @@ current_year = datetime.now().year
 db = SQL("sqlite:///linkedin.db")
 
 
-
-class Persona:
-    ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
-    def __init__(self, nombre, rol):
-        self.nombre = nombre
-        self.rol = rol
-
-
-
-def extract_username(url):
-    ''' Funcion que manipula la url para extraer el nombre de usuario de LinkedIn '''
-    parsed_url = urlparse(url)
-    path_comp = parsed_url.path.split('/')
-    if len(path_comp) > 2:
-        return path_comp[2]
-    else:
-        return None
-    
-
-
-def parse_time(seconds):
-    ''' Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos'''
-    horas = int (seconds // 3600)
-    minutos = int ((seconds % 3600) // 60)
-    segundos = int (seconds % 60)
-    resultado = f"{horas} horas, {minutos} minutos y {segundos} segundos"
-    return resultado
-
-
-
-def wait_random_time():
-    ''' Funcion que fuerza un tiempo de espera aleatorio entre 1 y 7 segundos para simular comportamiento humano '''
-    time.sleep(random.randint(1, 7))
-
-
-
-def number_of_pages(str_results):
-    ''' Funcion que devuelve el numero de paginas de resultados de busqueda en funcion del numero de resultados que se han producido '''
-    num_results = str_results.text.split(' ')
-    try:
-        # Si el número de resultados es mayor a 999, el texto se divide en dos partes
-        resultados = int(num_results[0])
-    except ValueError:
-        buffer = num_results[1].split('.')
-        resultados = int(buffer[0].join(buffer[1]))
-    finally:
-        return (math.ceil(resultados / 10))
+    # TODO: que cuando finalice el proceso, vuelva a la pantalla de despues del login a no ser que el usuario haya hecho logout
+    # TODO: implementar la funcion de escribir mensajes
+    # TODO: implementar la funcion de enviar invitaciones
+    # TODO: implementar animación de espera mientras está funcionando
+    # TODO: Función que actualice cuántos shots le quedan al usuario en el día
+    # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
+    # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
+    # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
+    # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
+    # TODO: implementar mi propia API de conexion con la BD para no usar la de CS50
 
 
 
@@ -97,17 +57,6 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
-
-    # TODO: que cuando finalice el proceso, vuelva a la pantalla de despues del login a no ser que el usuario haya hecho logout
-    # TODO: implementar la funcion de escribir mensajes
-    # TODO: implementar la funcion de enviar invitaciones
-    # TODO: implementar animación de espera mientras está funcionando
-    # TODO: Función que actualice cuántos shots le quedan al usuario en el día
-    # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
-    # TODO: implementar un contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
-    # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
-    # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
-    # TODO: implementar mi propia API de conexion con la BD para no usar la de CS50
 
 
 @app.route('/')
@@ -156,13 +105,9 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-
     print("Ultima conexion: ", datetime.now())
-
     db.execute("UPDATE usuarios SET connection = ? WHERE usuario = ?", datetime.now(), session["user_id"])
-
     session.clear()
-
     return render_template('index.html', current_year=current_year)
 
 

@@ -1,17 +1,72 @@
 from flask import redirect, render_template, session
 from functools import wraps
+from urllib.parse import urlparse
 
-# Renderiza mensajes de error
+from selenium.common.exceptions import NoSuchElementException
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+import random
+import time
+import math
+
+
+class Persona:
+    ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
+    def __init__(self, nombre, rol):
+        self.nombre = nombre
+        self.rol = rol
+
+
+
+def extract_username(url):
+    ''' Funcion que manipula la url para extraer el nombre de usuario de LinkedIn '''
+    parsed_url = urlparse(url)
+    path_comp = parsed_url.path.split('/')
+    if len(path_comp) > 2:
+        return path_comp[2]
+    else:
+        return None
+
+
+
+def wait_random_time():
+    ''' Funcion que fuerza un tiempo de espera aleatorio entre 1 y 7 segundos para simular comportamiento humano '''
+    time.sleep(random.randint(1, 7))
+
+
+
+def parse_time(seconds):
+    ''' Funcion que convierte el tiempo en segundos a un formato de horas, minutos y segundos'''
+    horas = int (seconds // 3600)
+    minutos = int ((seconds % 3600) // 60)
+    segundos = int (seconds % 60)
+    resultado = f"{horas} horas, {minutos} minutos y {segundos} segundos"
+    return resultado
+
+
+
+def number_of_pages(str_results):
+    ''' Funcion que devuelve el numero de paginas de resultados de busqueda en funcion del numero de resultados que se han producido '''
+    num_results = str_results.text.split(' ')
+    try:
+        ''' Si el número de resultados es mayor a 999, el texto se divide en dos partes '''
+        resultados = int(num_results[0])
+    except ValueError:
+        buffer = num_results[1].split('.')
+        resultados = int(buffer[0].join(buffer[1]))
+    finally:
+        return (math.ceil(resultados / 10))
+
+
 
 def apology(message, code=400):
-    """Render message as an apology to user."""
+    ''' Un renderizador de mensajes de error '''
 
     def escape(s):
-        """
-        Secuencias de escape especiales.
-
+        '''
         https://github.com/jacebrowning/memegen#special-characters
-        """
+        '''
         for old, new in [
             ("-", "--"),
             (" ", "-"),
@@ -30,11 +85,9 @@ def apology(message, code=400):
 
 
 def login_required(f):
-    """
-    Decora rutas para pedir login.
-
+    '''
     http://flask.pocoo.org/docs/0.12/patterns/viewdecorators/
-    """
+    '''
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -43,43 +96,3 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
-
-'''
-def lookup(symbol):
-    """Look up quote for symbol."""
-
-    # Prepare API request
-    symbol = symbol.upper()
-    end = datetime.datetime.now(pytz.timezone("US/Eastern"))
-    start = end - datetime.timedelta(days=7)
-
-    # Yahoo Finance API
-    url = (
-        f"https://query1.finance.yahoo.com/v7/finance/download/{urllib.parse.quote_plus(symbol)}"
-        f"?period1={int(start.timestamp())}"
-        f"&period2={int(end.timestamp())}"
-        f"&interval=1d&events=history&includeAdjustedClose=true"
-    )
-
-    # Query API
-    try:
-        response = requests.get(
-            url,
-            cookies={"session": str(uuid.uuid4())},
-            headers={"User-Agent": "python-requests", "Accept": "*/*"},
-        )
-        response.raise_for_status()
-
-        # CSV header: Date,Open,High,Low,Close,Adj Close,Volume
-        quotes = list(csv.DictReader(response.content.decode("utf-8").splitlines()))
-        quotes.reverse()
-        price = round(float(quotes[0]["Adj Close"]), 2)
-        return {"name": symbol, "price": price, "symbol": symbol}
-    except (requests.RequestException, ValueError, KeyError, IndexError):
-        return None
-
-
-def usd(value):
-    """Format value as USD."""
-    return f"${value:,.2f}"
-'''
