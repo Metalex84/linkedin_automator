@@ -39,6 +39,7 @@ current_year = datetime.now().year
 ''' Configuro la base de datos '''
 db = SQL("sqlite:///linkedin.db")
 
+    # TODO: implementar una pantalla intermedia que permita al usuario escribir un speech para el envio de mensajes
     # TODO: implementar la funcion de escribir mensajes
     # TODO: implementar la funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
@@ -48,6 +49,9 @@ db = SQL("sqlite:///linkedin.db")
     # TODO: implementar un último botón que permita al usuario descargar un archivo con el reporte de las acciones realizadas (y datos de contacto si se han recopilado)
     # TODO: en esto ultimo, si o si los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     # TODO: implementar mi propia API de conexion con la BD para no usar la de CS50
+    # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
+    # TODO: implementar la ayuda del sistema
+    # TODO: implementar un historial de acciones realizadas
 
 
 
