@@ -347,11 +347,11 @@ def busqueda():
                         perfiles_visitados.append(contacto)    
 
                         # XPath para cada boton de "Enviar mensaje" 
-                        msg = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"         
+                        msg = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
+                        # TODO: ¿Encerrar esto en un try?
                         enviar_mensaje = app.config['driver'].find_element(By.XPATH, msg)
                         enviar_mensaje.click()
 
-                        # TODO: implementar un cuadro de texto para que el usuario redacte el mensaje 
                         # TODO: para la personalizacion, quedarme solo con el primer nombre
 
                         '''
@@ -369,10 +369,11 @@ def busqueda():
         elif opt == '3':
             '''
             ENVIAR INVITACIONES DE CONTACTO
-            Esta acción solo puede ser realizada con contactos de segundo grado (profundidad 2 de red)
             '''
 
-            deep = '&network=%5B"S"%5D'
+            # Incluyo los contactos de segundo y tercer grado (profundidad 2 y 3), porque algunos contactos de tercer grado admiten invitaciones
+            deep = '&network=%5B"S"%2C"O"%5D'
+            
             app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
 
             start = time.time()
@@ -390,11 +391,13 @@ def busqueda():
                 num_pags = number_of_pages(str_results)
                 
                 pagina = 1
+                # TODO: En pruebas. Solo lo hago de una pagina
+                num_pags = 1
                 while pagina <= num_pags:
                     # Primero me posiciono en la página de búsqueda y espero un poco
                     app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                     wait_random_time()
-
+                
                     # Construyo la lista de perfiles a visitar
                     profiles = app.config['driver'].find_elements(By.XPATH, '//*[@class="app-aware-link  scale-down "]')
                     visit_profiles = [p for p in profiles]
@@ -404,11 +407,15 @@ def busqueda():
                         p_url = p.get_attribute('href')
                         usuario = extract_username(p_url)
 
-                        # TODO: para cada "Conectar":
-                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/div/button/span"
+                        # Cada botón "Conectar" está en este path
+                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
                         conectar = app.config['driver'].find_element(By.XPATH, button)
                         conectar.click()
-                        # TODO: implementar la solicitud de contactos
+                        
+                        # Esto es lo que envía la solicitud de contacto como tal
+                        # TODO: pendiente de saltar contactos cuyo button no sea del tipo "Conectar"
+                        app.config['driver'].execute_script("arguments[0].click();", button)
+                        
 
                         # Recupero los datos del perfil sobre el que realizo la acción
                         path_name = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div[1]/div[1]/div/span[1]/span/a/span/span[1]"
