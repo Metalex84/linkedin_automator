@@ -40,7 +40,6 @@ current_year = datetime.now().year
 db = SQL("sqlite:///linkedin.db")
 
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com
-    # TODO: en form login LinkedIn, añadir estilo para ver u ocultar password como en login general
     # TODO: funcion de escribir mensajes
     # TODO: funcion de enviar invitaciones
     # TODO: implementar animación de espera mientras está funcionando
