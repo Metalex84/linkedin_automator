@@ -1,0 +1,4 @@
+flask
+selenium
+cs50
+gunicorn=21.2.0
