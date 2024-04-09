@@ -187,6 +187,12 @@ def acciones():
 
 
 
+@app.route('/help', methods=['GET'])
+def help():
+    return render_template('help.html', current_year=current_year)
+
+
+
 @app.route('/linklogin', methods=['POST', 'GET'])
 @login_required
 def linklogin():
