@@ -11,7 +11,7 @@ Resultados
 <div class="container">
     <ol>
         {% for profile in profiles %}
-        <li class="text-primary">{{ profile.nombre }}, {{ profile.rol }}</li>
+        <li><a href="{{ profile.url }}" target="_blank">{{ profile.nombre }}, {{ profile.rol }}</a></li>
         {% endfor %}
     </ol>
 </div>
