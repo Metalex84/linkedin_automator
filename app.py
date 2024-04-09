@@ -41,7 +41,7 @@ db = SQL("sqlite:///linkedin.db")
 
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com
     # TODO: funcion de escribir mensajes
-    # TODO: funcion de enviar invitaciones
+    # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación ()
     # TODO: Control de errores: "texto_busqueda" vacio
     # TODO: implementar animación de espera mientras está funcionando
     # TODO: Función que actualice cuántos shots le quedan al usuario en el día
@@ -262,6 +262,7 @@ def busqueda():
 
             # Comienzo bucle externo
             pagina = 1
+            # TODO: limitador para evitar que se hagan demasiadas peticiones
             while pagina <= num_pags:
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
@@ -290,6 +291,7 @@ def busqueda():
                         
                         if opt == '1':
                             # VISITA: abro el perfil en una nueva pestaña:
+                            # TODO: limitarlo porque el navegador puede cerrarse inesperadamente si se abren demasiadas pestañas
                             app.config['driver'].execute_script(f"window.open('{p_url}');")
                         elif opt == '2':
                             # ENVIO DE MENSAJES
@@ -308,8 +310,14 @@ def busqueda():
                             button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
                             accion = app.config['driver'].find_element(By.XPATH, button)
                             accion.click()
+                            # Recupero el texto del mensaje que deseo enviar
+                            texto_mensaje = request.form.get('mensaje')
+                            # Para la personalizacion, quedarme solo con el primer nombre.
+                            texto_mensaje = texto_mensaje.replace('[[]]', nombre.split(' ')[0])
+                            # TODO: escribir "texto_mensaje" en el recuadro del mensaje y enviarlo
                             # TODO: pendiente de saltar contactos cuyo button no sea del tipo "Conectar"
-                            app.config['driver'].execute_script("arguments[0].click();", button)
+                            # app.config['driver'].execute_script("arguments[0].click();", button)
+
                         else:
                             return apology('Esta accion no estaba prevista, ¡contacta con el desarrollador!', 405)
                         
