@@ -227,7 +227,6 @@ def linklogin():
 @login_required
 def viewprofile():
     username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
-    ''' ¿Mereceria la pena usar un objeto en vez de tratar los datos del usuario por separado? '''
     return render_template('viewprofile.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
         
 
@@ -243,6 +242,13 @@ def busqueda():
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
         opt = app.config['opcion']
+
+        # TODO: verificar si funciona el reseteo del contador de shots 
+        ultima_conexion = db.execute("SELECT connection FROM usuarios WHERE id = ?", session["user_id"])
+        formato = "%Y-%m-%d %H:%M:%S"
+        last_connect = datetime.strptime(ultima_conexion[0]["connection"], formato)
+        if last_connect.day() <= datetime.now().day():
+            db.execute("UPDATE usuarios SET shots = 120 WHERE id = ?", session["user_id"])
 
         # Discrimino profundidad en base a opcion
         if opt == '1' or opt == '3':
@@ -337,10 +343,13 @@ def busqueda():
                         i += 1
                         wait_random_time()
                 pagina += 1
-            # Paro el reloj, cierro el navegador y voy a mostrar resultados
+            # Paro el reloj, cierro el navegador, actualizo shots restantes y muestro resultados
             end = time.time()
             app.config['driver'].quit()
-            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=len(perfiles_visitados))
+            shots_gastados = len(perfiles_visitados)
+            shots_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
+            db.execute("UPDATE usuarios SET shots = ? WHERE id = ?", shots_restantes - shots_gastados, session["user_id"])
+            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
 
 
