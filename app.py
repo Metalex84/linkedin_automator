@@ -8,7 +8,8 @@ from selenium.common.exceptions import NoSuchElementException
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from cs50 import SQL
+# from cs50 import SQL
+import controller as db
 
 from datetime import datetime
 
@@ -37,7 +38,7 @@ current_year = datetime.now().year
 
 
 ''' Configuro la base de datos '''
-db = SQL("sqlite:///linkedin.db")
+# db = SQL("sqlite:///linkedin.db")
 
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com
     # TODO: funcion de escribir mensajes
@@ -49,7 +50,6 @@ db = SQL("sqlite:///linkedin.db")
     # TODO: contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
     # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
-    # TODO: mi propia API de conexion con la BD para no usar la de CS50
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: ayuda del sistema
     # TODO: rellenar y guardar un historial de acciones realizadas
@@ -70,8 +70,10 @@ def after_request(response):
 @login_required
 def index():
     if "user_id" in session:
-        username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
-        return render_template('actions.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
+        # username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
+        user = db.get_user_by_id(session["user_id"])
+        # return render_template('actions.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
+        return render_template('actions.html', current_year=current_year, username=user[0]["usuario"], connection=user[0]["connection"], shots=user[0]["shots"])
         
     else:
         return render_template('index.html', current_year=current_year)
@@ -96,12 +98,13 @@ def login():
         elif not request.form.get('password'):
             return apology('¡Introduce tu contraseña!', 403)
         
-        cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", request.form.get('username'))
+        # cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", request.form.get('username'))
+        user = db.get_user_by_name(request.form.get('username'))
 
-        if len(cursor) != 1 or not check_password_hash(cursor[0]["password"], request.form.get('password')):
+        if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             return apology('¡Usuario o contraseña incorrectos!', 403)
         
-        session["user_id"] = cursor[0]["id"]
+        session["user_id"] = user[0]['id']
 
         return render_template("actions.html", current_year=current_year, username=request.form.get('username'))
 
@@ -115,7 +118,8 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-    db.execute("UPDATE usuarios SET connection = ? WHERE id = ?", datetime.now(), session["user_id"])
+    # db.execute("UPDATE usuarios SET connection = ? WHERE id = ?", datetime.now(), session["user_id"])
+    db.set_connection_by_id(datetime.now(), session["user_id"])
     session.clear()
     return redirect('/')
 
@@ -134,7 +138,8 @@ def register():
         password = request.form.get('password')
         confirmation = request.form.get('confirmation')
 
-        cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", username)
+        # cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", username)
+        cursor = db.get_user_by_name(username)
 
         if not username:
             return apology("¡Introduce un nombre de usuario!", 400)
@@ -148,7 +153,8 @@ def register():
             return apology("¡Las contraseñas no coinciden!", 400)
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            db.execute("INSERT INTO usuarios (usuario, password, shots) VALUES (?, ?, ?)", username, hash, 120)
+            # db.execute("INSERT INTO usuarios (usuario, password, shots) VALUES (?, ?, ?)", username, hash, 120)
+            db.insert_user(username, hash, 120)
             return redirect("/")
     else:
         return render_template('register.html', current_year=current_year)
@@ -163,7 +169,8 @@ def acciones():
     2. Devuelvo la acción seleccionada en forma de texto
     '''
     if request.method == 'POST':
-        acciones_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
+        # acciones_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
+        acciones_restantes = db.get_shots_by_id(session["user_id"])
         if acciones_restantes[0]['shots'] == 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
         else:
@@ -180,7 +187,8 @@ def acciones():
         
     else:
         if "user_id" in session:
-            username = db.execute("SELECT usuario FROM usuarios WHERE id = ?", session["user_id"])
+            # username = db.execute("SELECT usuario FROM usuarios WHERE id = ?", session["user_id"])
+            username = db.get_user_by_id(session["user_id"])
             return render_template('actions.html', current_year=current_year, username=username[0]["usuario"])
         else:
             return render_template('index.html', current_year=current_year)
@@ -226,7 +234,8 @@ def linklogin():
 @app.route('/viewprofile', methods=['GET'])
 @login_required
 def viewprofile():
-    username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
+    # username = db.execute("SELECT usuario, connection, shots FROM usuarios WHERE id = ?", session["user_id"])
+    username = db.get_user_by_id(session["user_id"])
     return render_template('viewprofile.html', current_year=current_year, username=username[0]["usuario"], connection=username[0]["connection"], shots=username[0]["shots"])
         
 
@@ -244,11 +253,13 @@ def busqueda():
         opt = app.config['opcion']
 
         # TODO: verificar si funciona el reseteo del contador de shots 
-        ultima_conexion = db.execute("SELECT connection FROM usuarios WHERE id = ?", session["user_id"])
+        # ultima_conexion = db.execute("SELECT connection FROM usuarios WHERE id = ?", session["user_id"])
+        ultima_conexion = db.get_connection_by_id(session["user_id"])
         formato = "%Y-%m-%d %H:%M:%S"
         last_connect = datetime.strptime(ultima_conexion[0]["connection"], formato)
         if last_connect.day() <= datetime.now().day():
-            db.execute("UPDATE usuarios SET shots = 120 WHERE id = ?", session["user_id"])
+            # db.execute("UPDATE usuarios SET shots = ? WHERE id = ?", 120, session["user_id"])
+            db.set_shots_by_id(120, session["user_id"] )
 
         # Discrimino profundidad en base a opcion
         if opt == '1' or opt == '3':
@@ -347,8 +358,10 @@ def busqueda():
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(perfiles_visitados)
-            shots_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
-            db.execute("UPDATE usuarios SET shots = ? WHERE id = ?", shots_restantes - shots_gastados, session["user_id"])
+            # shots_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
+            shots_restantes = db.get_shots_by_id(session["user_id"])
+            db.set_shots_by_id(shots_restantes[0]['shots'] - shots_gastados, session["user_id"] )
+            # db.execute("UPDATE usuarios SET shots = ? WHERE id = ?", shots_restantes - shots_gastados, session["user_id"])
             return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
 
