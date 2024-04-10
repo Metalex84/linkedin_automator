@@ -73,27 +73,20 @@ def set_connection_by_id(connection, id):
 
 
 
-def get_shots_by_id(id):
-    '''Obtiene el número de shots restantes por el id de usuario'''
-    conn = sql.connect('linkedin.db')
-    cursor = conn.cursor()
-    cursor.execute("""SELECT shots FROM usuarios WHERE id = ?""", id)
-    shots = cursor.fetchone()
-    conn.commit()
-    conn.close()
-    return shots
-
-
-
 def get_connection_by_id(id):
     '''Obtiene la última fecha y hora de conexión por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
-    cursor.execute("""SELECT connection FROM usuarios WHERE id = ?""", id)
-    connection = cursor.fetchone()
+    cursor.execute(
+        f"""SELECT connection FROM usuarios WHERE id = {id}"""
+        )
+    connection = cursor.fetchall()
     conn.commit()
     conn.close()
-    return connection
+    if connection:
+        return connection[0][0]
+    else:
+        return None
 
 
 
@@ -101,7 +94,10 @@ def set_shots_by_id(shots, id):
     '''Fija el número de shots restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
-    cursor.execute("""UPDATE usuarios SET shots = ? WHERE id = ?""", shots, id)
+    cursor.execute(
+        """UPDATE usuarios SET shots = ? WHERE id = ?""", 
+        (shots, id)
+        )
     conn.commit()
     conn.close()
 
@@ -111,8 +107,13 @@ def get_shots_by_id(id):
     '''Obtiene el número de shots restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
-    cursor.execute("""SELECT shots FROM usuarios WHERE id = ?""", id)
-    shots = cursor.fetchone()
+    cursor.execute(
+        f"""SELECT shots FROM usuarios WHERE id = {id}"""
+        )
+    shots = cursor.fetchall()
     conn.commit()
     conn.close()
-    return shots
+    if shots:
+        return shots[0][0]
+    else:
+        return None

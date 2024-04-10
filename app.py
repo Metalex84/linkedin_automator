@@ -40,7 +40,9 @@ current_year = datetime.now().year
 ''' Configuro la base de datos '''
 # db = SQL("sqlite:///linkedin.db")
 
-    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com
+    # TODO: implementar ayuda y permitir acceso a ayuda sin necesidad de loguearse
+    # TODO: calcular el current year en tiempo real, no solo al inicio de la aplicacion
+    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
     # TODO: funcion de escribir mensajes
     # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación ()
     # TODO: Control de errores: "texto_busqueda" vacio
@@ -51,7 +53,6 @@ current_year = datetime.now().year
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
     # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
-    # TODO: ayuda del sistema
     # TODO: rellenar y guardar un historial de acciones realizadas
 
 
@@ -171,7 +172,7 @@ def acciones():
     if request.method == 'POST':
         # acciones_restantes = db.execute("SELECT shots FROM usuarios WHERE id = ?", session["user_id"])
         acciones_restantes = db.get_shots_by_id(session["user_id"])
-        if acciones_restantes[0]['shots'] == 0:
+        if acciones_restantes == 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
         else:
             accion = ''
@@ -209,7 +210,7 @@ def linklogin():
     2. Controlo posible fallo de login, devolviendo un mensaje de error
     '''
     if request.method == 'POST':
-        app.config['driver'] = webdriver.Chrome()
+        app.config['driver'] = webdriver.Chrome() # Igual hay que cambiarlo por otro navegador!
         app.config['driver'].maximize_window()
         usuario = request.form.get('username')
         contrasena = request.form.get('password')
@@ -255,9 +256,10 @@ def busqueda():
         # TODO: verificar si funciona el reseteo del contador de shots 
         # ultima_conexion = db.execute("SELECT connection FROM usuarios WHERE id = ?", session["user_id"])
         ultima_conexion = db.get_connection_by_id(session["user_id"])
-        formato = "%Y-%m-%d %H:%M:%S"
-        last_connect = datetime.strptime(ultima_conexion[0]["connection"], formato)
-        if last_connect.day() <= datetime.now().day():
+        formato = "%Y-%m-%d %H:%M:%S.%f"
+        last_connect = datetime.strptime(ultima_conexion, formato)
+        # TODO: comprobar Null (no se ha conectado nunca)
+        if last_connect.date() <= datetime.now().date():
             # db.execute("UPDATE usuarios SET shots = ? WHERE id = ?", 120, session["user_id"])
             db.set_shots_by_id(120, session["user_id"] )
 
@@ -285,8 +287,7 @@ def busqueda():
 
             # Comienzo bucle externo
             pagina = 1
-            # TODO: limitador para evitar que se hagan demasiadas peticiones
-            while pagina <= num_pags:
+            while pagina <= num_pags:  # TODO: Comprobar en cada vuelta que no me he pasado del numero de shots restantes
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
