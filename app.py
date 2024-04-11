@@ -3,7 +3,7 @@ from flask_session import Session
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-# from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -324,13 +324,14 @@ def busqueda():
                             # Para la personalizacion, quedarme solo con el nombre.
                             mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
                             
-                            # TODO: Pongo "mensaje" en el recuadro y lo lanzo. OJO, que esto se me está atascando
-                            '''
-                            path_fieldtext = f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]/div/div[1]/div[1]/p"
-                            fieldtext = app.config['driver'].find_element(By.XPATH, path_fieldtext)
-                            fieldtext.send_keys(mensaje)
-                            '''
-                            app.config['driver'].execute_script("arguments[0].click();", button)
+                            # TODO: Depurar poner el "mensaje" en el recuadro y lanzarlo
+                            app.config['driver'].find_element(By.XPATH, f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]").click()
+                            
+                            fieldtext = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                            fieldtext[i].send_keys(mensaje)
+                            fieldtext[i].send_keys(Keys.RETURN)
+                            
+                            # app.config['driver'].execute_script("arguments[0].click();", button)
 
                             
                         elif opt == '3':
@@ -342,7 +343,7 @@ def busqueda():
                             mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
                             # Pongo "mensaje" en el recuadro y lo lanzo
                             # accion.send_keys(mensaje)
-                            app.config['driver'].execute_script("arguments[0].click();", button)
+                            # app.config['driver'].execute_script("arguments[0].click();", button)
                             
                             # TODO: pendiente de saltar contactos cuyo button no sea del tipo "Conectar"
 
