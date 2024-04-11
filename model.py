@@ -38,7 +38,7 @@ def get_user_by_name(usuario):
 
 
 def get_user_by_id(id):
-    '''Obtiene un usuario por su id'''
+    '''Obtiene un usuario por su id; si no lo encuentra, no devuelve 'None' sino campos vacios'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(

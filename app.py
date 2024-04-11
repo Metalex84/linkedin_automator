@@ -32,6 +32,7 @@ Session(app)
 ''' Configuro variables globales '''
 app.config['opcion'] = None
 app.config['driver'] = None
+app.config['texto_mensaje'] = None
 current_year = datetime.now().year
 
 
@@ -162,6 +163,7 @@ def acciones():
     2. Devuelvo la acción seleccionada en forma de texto
     '''
     if request.method == 'POST':
+        # TODO: verificar que pasa si el usuario se queda sin shots
         acciones_restantes = db.get_shots_by_id(session["user_id"])
         if acciones_restantes == 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
@@ -173,8 +175,12 @@ def acciones():
                 accion = 'visitar perfiles'
             elif opt == '2':
                 accion = 'escribir mensajes'
+                # Recupero el texto del mensaje que deseo enviar
+                app.config['texto_mensaje'] = request.form.get('mensaje')
             elif opt == '3':
                 accion = 'enviar invitaciones'
+                # Recupero el texto del mensaje que deseo enviar
+                app.config['texto_mensaje'] = request.form.get('mensaje')
             return render_template('linklogin.html', current_year=current_year, accion=accion)
         
     else:
@@ -306,28 +312,39 @@ def busqueda():
                             app.config['driver'].execute_script(f"window.open('{p_url}');")
                         elif opt == '2':
                             # ENVIO DE MENSAJES
-                            # Cada boton de "Enviar mensaje" está en este path
-                            button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
+                            if len(visit_profiles) == 1:
+                                # Path del boton "Enviar mensaje" si solo hay un perfil en la pagina
+                                button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li/div/div/div/div[3]/div/div/button"
+                            else:
+                                # Path del boton "Enviar mensaje" si hay mas de un perfil en la pagina
+                                button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
                             accion = app.config['driver'].find_element(By.XPATH, button)
                             accion.click()
-                            # Recupero el texto del mensaje que deseo enviar
-                            texto_mensaje = request.form.get('mensaje')
-                            # Para la personalizacion, quedarme solo con el primer nombre.
-                            texto_mensaje = texto_mensaje.replace('[[]]', nombre.split(' ')[0])
-                            # TODO: escribir "texto_mensaje" en el recuadro del mensaje y enviarlo
+                            
+                            # Para la personalizacion, quedarme solo con el nombre.
+                            mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
+                            
+                            # TODO: Pongo "mensaje" en el recuadro y lo lanzo. OJO, que esto se me está atascando
+                            '''
+                            path_fieldtext = f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]/div/div[1]/div[1]/p"
+                            fieldtext = app.config['driver'].find_element(By.XPATH, path_fieldtext)
+                            fieldtext.send_keys(mensaje)
+                            '''
+                            app.config['driver'].execute_script("arguments[0].click();", button)
+
                             
                         elif opt == '3':
                             # Cada botón "Conectar" está en este path
                             button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
                             accion = app.config['driver'].find_element(By.XPATH, button)
                             accion.click()
-                            # Recupero el texto del mensaje que deseo enviar
-                            texto_mensaje = request.form.get('mensaje')
-                            # Para la personalizacion, quedarme solo con el primer nombre.
-                            texto_mensaje = texto_mensaje.replace('[[]]', nombre.split(' ')[0])
-                            # TODO: escribir "texto_mensaje" en el recuadro del mensaje y enviarlo
+                            # Para la personalizacion, quedarme solo con el nombre.
+                            mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
+                            # Pongo "mensaje" en el recuadro y lo lanzo
+                            # accion.send_keys(mensaje)
+                            app.config['driver'].execute_script("arguments[0].click();", button)
+                            
                             # TODO: pendiente de saltar contactos cuyo button no sea del tipo "Conectar"
-                            # app.config['driver'].execute_script("arguments[0].click();", button)
 
                         else:
                             return apology('Esta accion no estaba prevista, ¡contacta con el desarrollador!', 405)
