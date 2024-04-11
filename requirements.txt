@@ -1,4 +1,4 @@
 flask
 selenium
-cs50
+sqlite3
 gunicorn=21.2.0

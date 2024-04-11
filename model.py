@@ -44,19 +44,25 @@ def get_user_by_id(id):
     cursor.execute(
         f"""SELECT * FROM usuarios WHERE id = {id}"""
         )
-    users = cursor.fetchall()
+    user = cursor.fetchone()
     conn.commit()
     conn.close()
-    users_info = []
-    for u in users:
-        users_info.append({
-            'id': u[0],
-            'usuario': u[1],
-            'password': u[2],
-            'connection': u[3],
-            'shots': u[4]
-        })
-    return users_info
+    if user:
+        return {
+            'id': user[0],
+            'usuario': user[1],
+            'password': user[2],
+            'connection': user[3],
+            'shots': user[4]
+        }
+    else:
+        return {
+            'id': 0,
+            'usuario': '',
+            'password': '',
+            'connection': '',
+            'shots': ''
+        }
 
 
 
@@ -80,11 +86,11 @@ def get_connection_by_id(id):
     cursor.execute(
         f"""SELECT connection FROM usuarios WHERE id = {id}"""
         )
-    connection = cursor.fetchall()
+    connection = cursor.fetchone()
     conn.commit()
     conn.close()
     if connection:
-        return connection[0][0]
+        return connection[0]
     else:
         return None
 
