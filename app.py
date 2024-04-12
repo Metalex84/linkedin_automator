@@ -12,7 +12,7 @@ import model as db
 
 from datetime import datetime
 
-from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required
+from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username
 
 import time
 # import csv
@@ -36,17 +36,16 @@ app.config['texto_mensaje'] = None
 MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-
-
-    # TODO: implementar ayuda
-    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
-    # TODO: funcion de escribir mensajes
-    # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación (OJO, ELEMENTS NOT CLICKABLE)
-    # TODO: implementar animación de espera mientras está funcionando
-    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
+    # TODO: escribir mensajes
+    # TODO: mensaje personalizado en solicitud de conexiones
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
     # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
+    
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
+    # TODO: implementar ayuda
+    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
+    # TODO: implementar animación de espera mientras está funcionando
+    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
     # TODO: rellenar y guardar un historial de acciones realizadas
     # TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
     # TODO: cambiar el renderizador de mensajes de error por uno propio
@@ -211,7 +210,6 @@ def linklogin():
     '''
     if request.method == 'POST':
         app.config['driver'] = webdriver.Chrome()
-        app.config['driver'].maximize_window()
         usuario = request.form.get('username')
         if not usuario:
             return apology('¡Introduce tu usuario de LinkedIn!', 403)
@@ -288,6 +286,8 @@ def busqueda():
 
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
+            # DEBUG
+            # num_pags = 1 
             # Obtengo los shots restantes del usuario, porque no rebasarlos es una condición complementaria de parada
             remaining_shots = db.get_shots_by_id(session["user_id"])
             while pagina <= num_pags and len(perfiles_visitados) <= remaining_shots:  
@@ -311,56 +311,16 @@ def busqueda():
                         p_url = p.get_attribute('href')
                         
                         # Puede que más adelante necesite hacer algo con el nombre de usuario de LinkedIn de cada contacto
-                        # usuario = extract_username(p_url)
+                        usuario = extract_username(p_url)
 
                         # Y esto solo me sirve a efectos de depuración
-                        # print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        # TODO: ¿podria sacarse esta informacion de forma visible por el usuario, o me la guardo como un log en la BD?
+                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
                         
                         if opt == '1':
-                            # VISITA: abro el perfil en una nueva pestaña:
-                            # TODO: limitarlo porque el navegador puede cerrarse inesperadamente si se abren demasiadas pestañas
+                            # Visito abriendo en nueva pestaña; ya no tengo que hacer nada más (no mandaré mensajes ni solicitudes de conexión)
+                            # TODO: OJO el navegador puede cerrarse inesperadamente si se abren demasiadas pestañas
                             app.config['driver'].execute_script(f"window.open('{p_url}');")
-                        elif opt == '2':
-                            # ENVIO DE MENSAJES
-                            if len(visit_profiles) == 1:
-                                # Path del boton "Enviar mensaje" si solo hay un perfil en la pagina
-                                button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li/div/div/div/div[3]/div/div/button"
-                            else:
-                                # Path del boton "Enviar mensaje" si hay mas de un perfil en la pagina
-                                button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
-                            app.config['driver'].find_element(By.XPATH, button).click()
-                            
-                            # Para la personalizacion, quedarme solo con el nombre.
-                            mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
-                            
-                            # TODO: Depurar poner el "mensaje" en el recuadro y lanzarlo
-                            app.config['driver'].find_element(By.XPATH, f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]").click()
-                            
-                            fieldtext = app.config['driver'].find_elements(By.TAG_NAME, "p")
-                            fieldtext[i].send_keys(mensaje)
-                            fieldtext[i].send_keys(Keys.RETURN)
-                            
-
-                            
-                        elif opt == '3':
-                            # Cada botón "Conectar" está en este path
-                            button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
-                            app.config['driver'].find_element(By.XPATH, button).click()
-                            # Para la personalizacion, quedarme solo con el nombre.
-                            mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
-                            # Este es el boton de personalizar invitacion: /html/body/div[3]/div/div/div[3]/button[1]/span
-                            # Este es el area de texto. Pongo "mensaje" en el recuadro y lo lanzo
-                            textfield = app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[3]/div[1]/textarea").send_keys(mensaje)
-                            
-                            app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[4]/button[1]").click()
-                            
-                            # TODO: pendiente de saltar contactos cuyo button obligue a meter su email"
-                            close = app.config['driver'].find_element(By.XPATH, '//button[@aria-label="Dismiss"]')
-                            app.config['driver'].execute_script("arguments[0].click();", close)
-
-
-                        else:
-                            return apology('Esta accion no estaba prevista, ¡contacta con el desarrollador!', 405)
                         
                         # Agrego el contacto a la lista
                         contacto = Persona(nombre, rol, p_url)
@@ -371,6 +331,50 @@ def busqueda():
                     finally:
                         i += 1
                         wait_random_time()
+                # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
+                if opt == '3':
+                    '''
+                    # Cada botón "Conectar" está en este path
+                    button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
+                    app.config['driver'].find_element(By.XPATH, button).click()
+                    # Para la personalizacion, quedarme solo con el nombre.
+                    # Este es el boton de personalizar invitacion: /html/body/div[3]/div/div/div[3]/button[1]/span
+                    # Este es el area de texto. Pongo "mensaje" en el recuadro y lo lanzo
+                    textfield = app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[3]/div[1]/textarea").send_keys(mensaje)
+                    app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[4]/button[1]").click()
+                    # TODO: pendiente de saltar contactos cuyo button obligue a meter su email"
+                    close = app.config['driver'].find_element(By.XPATH, '//button[@aria-label="Dismiss"]')
+                    app.config['driver'].execute_script("arguments[0].click();", close)
+                    ''' 
+                    # Construyo la lista de botones "Conectar" en cada una de las paginas
+                    all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
+                    connect_buttons = [btn for btn in all_buttons if btn.text == "Conectar"]
+                    for btn in connect_buttons:
+                        app.config['driver'].execute_script("arguments[0].click();", btn)
+                        wait_random_time()
+                        send = app.config['driver'].find_element(By.XPATH, "//button[@aria-label='Enviar ahora']")
+                        app.config['driver'].execute_script("arguments[0].click();", send)
+                elif opt == '2':
+                    # TODO: implementar automatizacion de envio de mensajes
+                      # ENVIO DE MENSAJES
+                    if len(visit_profiles) == 1:
+                        # Path del boton "Enviar mensaje" si solo hay un perfil en la pagina
+                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li/div/div/div/div[3]/div/div/button"
+                    else:
+                        # Path del boton "Enviar mensaje" si hay mas de un perfil en la pagina
+                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
+                    app.config['driver'].find_element(By.XPATH, button).click()
+                    
+                    # Para la personalizacion, quedarme solo con el nombre.
+                    mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
+                    
+                    # TODO: Depurar poner el "mensaje" en el recuadro y lanzarlo
+                    app.config['driver'].find_element(By.XPATH, f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]").click()
+                    
+                    fieldtext = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                    fieldtext[i].send_keys(mensaje)
+                    fieldtext[i].send_keys(Keys.RETURN)
+                    # pass
                 pagina += 1
 
             # Paro el reloj, cierro el navegador, actualizo shots restantes y muestro resultados
