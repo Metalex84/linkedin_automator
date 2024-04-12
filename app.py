@@ -33,26 +33,27 @@ Session(app)
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['texto_mensaje'] = None
-current_year = datetime.now().year
+MAX_SHOTS = 120
 
 
 
 
-    # TODO: implementar ayuda y permitir acceso a ayuda sin necesidad de loguearse
-    # TODO: calcular el current year en tiempo real, no solo al inicio de la aplicacion
+    # TODO: implementar ayuda
     # TODO: simplificar gestion de fechas, omitiendo los ms siempre
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
     # TODO: funcion de escribir mensajes
     # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación ()
-    # TODO: Control de errores: "texto_busqueda" vacio
     # TODO: implementar animación de espera mientras está funcionando
-    # TODO: Función que actualice cuántos shots le quedan al usuario en el día
-    # TODO: preguntar al usuario cuántas acciones quiere hacer hoy (maximo de 120 por seguridad)
-    # TODO: contador regresivo para que, tras las acciones realizadas, el usuario vea cuántas le quedan durante el día.
+    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
     # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: rellenar y guardar un historial de acciones realizadas
+    # TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
+    # TODO: cambiar el renderizador de mensajes de error por uno propio
+    # TODO: ajustar anchura de los cuadros de texto de pedir datos
+    # TODO: controlar mostrar / ocultar la contraseña de LinkedIn mientras se está escribiendo
+    # TODO: categorizar y discriminar los mensajes de error
 
 
 
@@ -71,10 +72,10 @@ def after_request(response):
 def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
-        return render_template('actions.html', current_year=current_year, username=user["usuario"], connection=user["connection"], shots=user["shots"])
+        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=user["shots"])
         
     else:
-        return render_template('index.html', current_year=current_year)
+        return render_template('index.html', current_year=datetime.now().year)
 
 
 
@@ -103,10 +104,10 @@ def login():
         
         session["user_id"] = user[0]['id']
 
-        return render_template("actions.html", current_year=current_year, username=request.form.get('username'))
+        return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
 
     else:
-        return render_template('index.html', current_year=current_year)
+        return render_template('index.html', current_year=datetime.now().year)
 
 
 
@@ -126,7 +127,7 @@ def register():
     '''
     1. Recupero los datos del formmulario de registro controlando posibles errores
     2. Aplico una función hash para almacenar la contraseña en la BD
-    3. Asigno automáticamente 120 shots a cada usuario nuevo
+    3. Asigno el máximo de shots a cada usuario nuevo
     '''
 
     if request.method == "POST":
@@ -148,10 +149,10 @@ def register():
             return apology("¡Las contraseñas no coinciden!", 400)
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            db.insert_user(username, hash, 120)
+            db.insert_user(username, hash, MAX_SHOTS)
             return redirect("/")
     else:
-        return render_template('register.html', current_year=current_year)
+        return render_template('register.html', current_year=datetime.now().year)
 
 
 
@@ -177,24 +178,28 @@ def acciones():
                 accion = 'escribir mensajes'
                 # Recupero el texto del mensaje que deseo enviar
                 app.config['texto_mensaje'] = request.form.get('mensaje')
+                if not app.config['texto_mensaje']:
+                    return apology('¡Introduce un mensaje!', 403)
             elif opt == '3':
                 accion = 'enviar invitaciones'
                 # Recupero el texto del mensaje que deseo enviar
                 app.config['texto_mensaje'] = request.form.get('mensaje')
-            return render_template('linklogin.html', current_year=current_year, accion=accion)
+                if not app.config['texto_mensaje']:
+                    return apology('¡Introduce un mensaje!', 403)
+            return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
         
     else:
         if "user_id" in session:
             username = db.get_user_by_id(session["user_id"])
-            return render_template('actions.html', current_year=current_year, username=username["usuario"])
+            return render_template('actions.html', current_year=datetime.now().year, username=username["usuario"])
         else:
-            return render_template('index.html', current_year=current_year)
+            return render_template('index.html', current_year=datetime.now().year)
 
 
 
 @app.route('/help', methods=['GET'])
 def help():
-    return render_template('help.html', current_year=current_year)
+    return render_template('help.html', current_year=datetime.now().year)
 
 
 
@@ -209,7 +214,11 @@ def linklogin():
         app.config['driver'] = webdriver.Chrome()
         app.config['driver'].maximize_window()
         usuario = request.form.get('username')
+        if not usuario:
+            return apology('¡Introduce tu usuario de LinkedIn!', 403)
         contrasena = request.form.get('password')
+        if not contrasena:
+            return apology('¡Introduce tu contraseña de LinkedIn!', 403)
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
@@ -222,9 +231,9 @@ def linklogin():
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
-            return render_template('busqueda.html', usuario=usuario, current_year=current_year)
+            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year)
     else:
-        return render_template('index.html', current_year=current_year)
+        return render_template('index.html', current_year=datetime.now().year)
 
 
 
@@ -232,7 +241,7 @@ def linklogin():
 @login_required
 def viewprofile():
     username = db.get_user_by_id(session["user_id"])
-    return render_template('viewprofile.html', current_year=current_year, username=username["usuario"], connection=username["connection"], shots=username["shots"])
+    return render_template('viewprofile.html', current_year=datetime.now().year, username=username["usuario"], connection=username["connection"], shots=username["shots"])
         
 
 
@@ -246,6 +255,8 @@ def busqueda():
     if request.method == 'POST':
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
+        if not cuadro_texto:
+            return apology('¡Introduce un texto de búsqueda!', 403)
         opt = app.config['opcion']
 
         # TODO: verificar si funciona el reseteo del contador de shots 
@@ -254,7 +265,7 @@ def busqueda():
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, formato)
             if last_connect.date() < datetime.now().date():
-                db.set_shots_by_id(120, session["user_id"] )
+                db.set_shots_by_id(MAX_SHOTS, session["user_id"] )
 
         # Discrimino profundidad en base a opcion
         if opt == '1' or opt == '3':
@@ -272,7 +283,7 @@ def busqueda():
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
-            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo='(sin resultados)')
+            return render_template("done.html", profiles=perfiles_visitados, current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
             # Obtengo cantidad de resultados y calculo numero de paginas
             str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
@@ -280,7 +291,8 @@ def busqueda():
 
             # Comienzo bucle externo
             pagina = 1
-            while pagina <= num_pags:  # TODO: Comprobar en cada vuelta que no me he pasado del numero de shots restantes
+            while pagina <= num_pags:  
+                # TODO: Comprobar en cada vuelta que no me he pasado del numero de shots restantes
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -367,11 +379,11 @@ def busqueda():
             shots_gastados = len(perfiles_visitados)
             shots_restantes = db.get_shots_by_id(session["user_id"])
             db.set_shots_by_id(shots_restantes - shots_gastados, session["user_id"] )
-            return render_template("done.html", profiles=perfiles_visitados, current_year=current_year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
+            return render_template("done.html", profiles=perfiles_visitados, current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
         app.config['driver'].quit()
-        return render_template('index.html', current_year=current_year)
+        return render_template('index.html', current_year=datetime.now().year)
 
 
 
