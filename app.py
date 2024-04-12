@@ -41,7 +41,7 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     # TODO: implementar ayuda
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
     # TODO: funcion de escribir mensajes
-    # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación ()
+    # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación (OJO, ELEMENTS NOT CLICKABLE)
     # TODO: implementar animación de espera mientras está funcionando
     # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
@@ -328,8 +328,7 @@ def busqueda():
                             else:
                                 # Path del boton "Enviar mensaje" si hay mas de un perfil en la pagina
                                 button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
-                            accion = app.config['driver'].find_element(By.XPATH, button)
-                            accion.click()
+                            app.config['driver'].find_element(By.XPATH, button).click()
                             
                             # Para la personalizacion, quedarme solo con el nombre.
                             mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
@@ -341,21 +340,24 @@ def busqueda():
                             fieldtext[i].send_keys(mensaje)
                             fieldtext[i].send_keys(Keys.RETURN)
                             
-                            # app.config['driver'].execute_script("arguments[0].click();", button)
 
                             
                         elif opt == '3':
                             # Cada botón "Conectar" está en este path
-                            button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button/span"
-                            accion = app.config['driver'].find_element(By.XPATH, button)
-                            accion.click()
+                            button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
+                            app.config['driver'].find_element(By.XPATH, button).click()
                             # Para la personalizacion, quedarme solo con el nombre.
                             mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
-                            # Pongo "mensaje" en el recuadro y lo lanzo
-                            # accion.send_keys(mensaje)
-                            # app.config['driver'].execute_script("arguments[0].click();", button)
+                            # Este es el boton de personalizar invitacion: /html/body/div[3]/div/div/div[3]/button[1]/span
+                            # Este es el area de texto. Pongo "mensaje" en el recuadro y lo lanzo
+                            textfield = app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[3]/div[1]/textarea").send_keys(mensaje)
                             
-                            # TODO: pendiente de saltar contactos cuyo button no sea del tipo "Conectar"
+                            app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[4]/button[1]").click()
+                            
+                            # TODO: pendiente de saltar contactos cuyo button obligue a meter su email"
+                            close = app.config['driver'].find_element(By.XPATH, '//button[@aria-label="Dismiss"]')
+                            app.config['driver'].execute_script("arguments[0].click();", close)
+
 
                         else:
                             return apology('Esta accion no estaba prevista, ¡contacta con el desarrollador!', 405)
