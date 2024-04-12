@@ -34,12 +34,11 @@ app.config['opcion'] = None
 app.config['driver'] = None
 app.config['texto_mensaje'] = None
 MAX_SHOTS = 120
-
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 
     # TODO: implementar ayuda
-    # TODO: simplificar gestion de fechas, omitiendo los ms siempre
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
     # TODO: funcion de escribir mensajes
     # TODO: funcion de enviar invitaciones, permitiendo personalizar mensaje de invitación ()
@@ -116,7 +115,7 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-    db.set_connection_by_id(datetime.now(), session["user_id"])
+    db.set_connection_by_id(datetime.now().strftime(DATE_FORMAT), session["user_id"])
     session.clear()
     return redirect('/')
 
@@ -255,15 +254,12 @@ def busqueda():
     if request.method == 'POST':
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
-        if not cuadro_texto:
-            return apology('¡Introduce un texto de búsqueda!', 403)
         opt = app.config['opcion']
 
         # TODO: verificar si funciona el reseteo del contador de shots 
         ultima_conexion = db.get_connection_by_id(session["user_id"])
-        formato = "%Y-%m-%d %H:%M:%S.%f"
         if ultima_conexion is not None:
-            last_connect = datetime.strptime(ultima_conexion, formato)
+            last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
             if last_connect.date() < datetime.now().date():
                 db.set_shots_by_id(MAX_SHOTS, session["user_id"] )
 
