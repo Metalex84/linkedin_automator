@@ -29,7 +29,7 @@ Session(app)
 
 
 
-''' Configuro variables globales '''
+''' Configuro variables globales y constantes'''
 app.config['opcion'] = None
 app.config['driver'] = None
 app.config['texto_mensaje'] = None
@@ -230,7 +230,8 @@ def linklogin():
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
-            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year)
+            remaining_shots = db.get_shots_by_id(session["user_id"])
+            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=remaining_shots)
     else:
         return render_template('index.html', current_year=datetime.now().year)
 
@@ -285,10 +286,11 @@ def busqueda():
             str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
             num_pags = number_of_pages(str_results)
 
-            # Comienzo bucle externo
+            # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
-            while pagina <= num_pags:  
-                # TODO: Comprobar en cada vuelta que no me he pasado del numero de shots restantes
+            # Obtengo los shots restantes del usuario, porque no rebasarlos es una condición complementaria de parada
+            remaining_shots = db.get_shots_by_id(session["user_id"])
+            while pagina <= num_pags and len(perfiles_visitados) <= remaining_shots:  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()

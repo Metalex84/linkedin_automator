@@ -1,12 +1,13 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Filtra tu búsqueda
+Filtra tu búsqueda
 {% endblock %}
 
 {% block main %}
 <div class="container mt-5">
     <h2>Bienvenido, <i>{{ usuario }}</i></h2>
+    {% if remaining_shots > 0 %}
     <form action="/busqueda" method="post">
         <div class="mb-3">
             <label for="busqueda">Clave de busqueda</label>
@@ -14,5 +15,11 @@
         </div>
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
+    {% else %}
+    <div class="mb-3">
+        <h3>Ya no tienes shots disponibles</h3>
+        <a href="/" class="btn btn-primary">Volver</a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
