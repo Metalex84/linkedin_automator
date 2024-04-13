@@ -15,4 +15,14 @@ Resultados
         {% endfor %}
     </ol>
 </div>
+<div class="container text-center mb-5">
+    <div class="mb-3">
+        <a href="/acciones" class="btn btn-primary">Volver a empezar</a>
+    </div>
+    <div class="mb-3">
+        <div class="container">
+            <a href="{{ url_for('descargar') }}">Descargar</a>
+        </div>
+    </div>
+</div>
 {% endblock %}

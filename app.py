@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session, send_file
 from flask_session import Session
 
 from selenium import webdriver
@@ -15,7 +15,7 @@ from datetime import datetime
 from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username
 
 import time
-# import csv
+import csv
 
 
 app = Flask(__name__)
@@ -35,12 +35,16 @@ app.config['driver'] = None
 app.config['texto_mensaje'] = None
 MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+perfiles_visitados = []
 
+
+    # TODO: depurar reseteo diario de shots
     # TODO: escribir mensajes
     # TODO: mensaje personalizado en solicitud de conexiones
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
     # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
     
+    # TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: implementar ayuda
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
@@ -263,10 +267,15 @@ def busqueda():
                 db.set_shots_by_id(MAX_SHOTS, session["user_id"] )
 
         # Discrimino profundidad en base a opcion
-        if opt == '1' or opt == '3':
+        if opt == '1':
+            # Visitar perfiles: a contactos de segundo y tercer grado
             deep = '&network=%5B"S"%2C"O"%5D'
         elif opt == '2':
+            # Enviar mensajes solo a contactos de primer grado
             deep = '&network=%5B"F"%5D'
+        elif opt == '3':
+            # Solicitud de conexion: solo a contactos de segundo grado
+            deep = '&network=%5B"S"%5D'
 
         # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles
         app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}")
@@ -333,19 +342,6 @@ def busqueda():
                         wait_random_time()
                 # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
                 if opt == '3':
-                    '''
-                    # Cada botón "Conectar" está en este path
-                    button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
-                    app.config['driver'].find_element(By.XPATH, button).click()
-                    # Para la personalizacion, quedarme solo con el nombre.
-                    # Este es el boton de personalizar invitacion: /html/body/div[3]/div/div/div[3]/button[1]/span
-                    # Este es el area de texto. Pongo "mensaje" en el recuadro y lo lanzo
-                    textfield = app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[3]/div[1]/textarea").send_keys(mensaje)
-                    app.config['driver'].find_element(By.XPATH, "/html/body/div[3]/div/div/div[4]/button[1]").click()
-                    # TODO: pendiente de saltar contactos cuyo button obligue a meter su email"
-                    close = app.config['driver'].find_element(By.XPATH, '//button[@aria-label="Dismiss"]')
-                    app.config['driver'].execute_script("arguments[0].click();", close)
-                    ''' 
                     # Construyo la lista de botones "Conectar" en cada una de las paginas
                     all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
                     connect_buttons = [btn for btn in all_buttons if btn.text == "Conectar"]
@@ -354,6 +350,7 @@ def busqueda():
                         wait_random_time()
                         send = app.config['driver'].find_element(By.XPATH, "//button[@aria-label='Enviar ahora']")
                         app.config['driver'].execute_script("arguments[0].click();", send)
+                        # TODO: conseguir saltar a contactos con mayor nivel de privacidad
                 elif opt == '2':
                     # TODO: implementar automatizacion de envio de mensajes
                       # ENVIO DE MENSAJES
@@ -377,7 +374,7 @@ def busqueda():
                     # pass
                 pagina += 1
 
-            # Paro el reloj, cierro el navegador, actualizo shots restantes y muestro resultados
+            # Paro el reloj, cierro el scrapper, actualizo shots restantes y muestro resultados
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(perfiles_visitados)
@@ -388,6 +385,26 @@ def busqueda():
     else:
         app.config['driver'].quit()
         return render_template('index.html', current_year=datetime.now().year)
+
+
+
+@app.route('/descargar', methods=['POST', 'GET'])
+@login_required
+def descargar():
+    ruta = 'perfiles.csv'
+    
+    #  DEBUG
+    # TODO: Ojo, que no me recupera los perfiles visitados!!!
+    print(perfiles_visitados)
+    
+    # No se cómo traer "perfiles_visitados" desde "done.html", por eso lo trato como variable global
+    with open('perfiles.csv', mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Nombre', 'Rol', 'URL'])
+        for perfil in perfiles_visitados:
+            writer.writerow([perfil.nombre, perfil.rol, perfil.url])
+    return send_file(ruta, as_attachment=True)
+
 
 
 
