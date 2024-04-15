@@ -106,6 +106,14 @@ def login():
         
         session["user_id"] = user[0]['id']
 
+        # TODO: verificar si funciona el reseteo del contador de shots 
+        ultima_conexion = db.get_connection_by_id(session["user_id"])
+        if ultima_conexion is not None:
+            last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
+            print(f'Ultima conexion: {last_connect.date()}; fecha actual: {datetime.now().date()}')
+            if last_connect.date() < datetime.now().date():
+                db.set_shots_by_id(MAX_SHOTS, session["user_id"])
+
         return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
 
     else:
@@ -166,9 +174,9 @@ def acciones():
     2. Devuelvo la acción seleccionada en forma de texto
     '''
     if request.method == 'POST':
-        # TODO: verificar que pasa si el usuario se queda sin shots
+        # ¿Permito "shots negativos"?
         acciones_restantes = db.get_shots_by_id(session["user_id"])
-        if acciones_restantes == 0:
+        if acciones_restantes <= 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
         else:
             accion = ''
@@ -258,13 +266,6 @@ def busqueda():
         perfiles_visitados = []
         cuadro_texto = request.form.get('texto_busqueda')
         opt = app.config['opcion']
-
-        # TODO: verificar si funciona el reseteo del contador de shots 
-        ultima_conexion = db.get_connection_by_id(session["user_id"])
-        if ultima_conexion is not None:
-            last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
-            if last_connect.date() < datetime.now().date():
-                db.set_shots_by_id(MAX_SHOTS, session["user_id"] )
 
         # Discrimino profundidad en base a opcion
         if opt == '1':
