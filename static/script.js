@@ -16,20 +16,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Escucha el evento 'change' en el select para mostrar u ocultar el textarea
     selectElement.addEventListener('change', toggleTextarea);
-
-    // Llama a la función al cargar la página para asegurar que el textarea esté oculto si la opción por defecto no es la tercera
     toggleTextarea();
 });
-
-/**
- * Funcion para verificar si el numero de shots es valido antes de iniciar una nueva busqueda
- 
- */
-function verifyShots() {
-    var shots = document.getElementById("numero_shots").value;
-    alert(session.get('shots', 0));
-    if (shots > session.get('shots', 0)) {
-        alert("No tienes suficientes shots disponibles");
-        document.getElementById("numero_shots").value = remaining_shots;
-    }
-}

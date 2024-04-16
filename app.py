@@ -76,7 +76,6 @@ def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
         session['shots'] = user["shots"]
-        print("Estoy en INDEX. El usuario tiene ", session['shots'], " shots")
         return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=session['shots'])
         
     else:
@@ -176,6 +175,8 @@ def acciones():
     1. Recojo la opción seleccionada por el usuario, solo si tiene acciones disponibles restantes
     2. Devuelvo la acción seleccionada en forma de texto
     '''
+    user = db.get_user_by_id(session["user_id"])
+    session['shots'] = user["shots"]
     if request.method == 'POST':
         accion = ''
         app.config['opcion'] = request.form.get('opciones')
@@ -238,7 +239,6 @@ def linklogin():
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
-            print("Estoy en LINKLOGIN. El usuario tiene ", session.get('shots', 0), " shots")
             return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
     else:
         return render_template('index.html', current_year=datetime.now().year)
@@ -261,6 +261,8 @@ def busqueda():
     2. Recupero el texto de busqueda y realizo la busqueda 
     '''
     if request.method == 'POST':
+        if int(request.form.get('numero_shots')) > session.get('shots', 0):
+            return apology('¡No tienes suficientes acciones restantes!', 403)
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
         session['perfiles_visitados'] = []
         cuadro_texto = request.form.get('texto_busqueda')

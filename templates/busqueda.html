@@ -5,7 +5,6 @@ Filtra tu búsqueda
 {% endblock %}
 
 {% block main %}
-<script src='/static/script.js'></script>
 <div class="container mt-5">
     <h2>Bienvenido, {{ usuario }}</h2>
     <h3>Te quedan <u>{{ remaining_shots }}</u> acciones disponibles hoy</h3>
@@ -19,7 +18,7 @@ Filtra tu búsqueda
             <label for="shots"><i>¿A cuántas personas quieres llegar?</i></label>
             <input type="number" class="form-control mx-auto w-auto" id="numero_shots" name="numero_shots">
         </div>
-        <button type="submit" class="btn btn-primary" onclick="verifyShots()">Buscar</button>
+        <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
     {% else %}
     <div class="mb-3">
