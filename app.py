@@ -8,17 +8,18 @@ from selenium.common.exceptions import NoSuchElementException
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-import model as db
-
 from datetime import datetime
-
-from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username
-
+import secrets
 import time
 import csv
 
+from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username
+import model as db
 
+
+''' Configuro la aplicacion Flask y la clave secreta '''
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
 
 
 
@@ -39,12 +40,14 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
     # TODO: escribir mensajes
     # TODO: mensaje personalizado en solicitud de conexiones
-    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
+    # TODO: preguntar en "busqueda" al usuario cuántas acciones quiere hacer en cada ciclo
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: rellenar y guardar un historial de acciones realizadas
     # TODO: pagina de ayuda
     # TODO: estilar y poner bonito el front
-    
+    # TODO: incluir en la info del csv la acción que se ha realizado
+
+    # TODO: ¿guardar en el csv el nombre de usuario de LinkedIn, o la URL de su perfil?
     # TODO: permitir más que solo 120 shots diarios?
     # TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com, horecarentable.com o ayira.es
@@ -73,6 +76,7 @@ def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
         session['shots'] = user["shots"]
+        print("Estoy en INDEX. El usuario tiene ", session['shots'], " shots")
         return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=session['shots'])
         
     else:
@@ -110,7 +114,6 @@ def login():
         ultima_conexion = db.get_connection_by_id(session["user_id"])
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
-            print(f'Ultima conexion: {last_connect.date()}; fecha actual: {datetime.now().date()}')
             if last_connect.date() < datetime.now().date():
                 db.set_shots_by_id(MAX_SHOTS, session["user_id"])
 
@@ -174,28 +177,24 @@ def acciones():
     2. Devuelvo la acción seleccionada en forma de texto
     '''
     if request.method == 'POST':
-        # ¿Permito "shots negativos"?
-        if session['shots'] <= 0:
-            return apology('¡No tienes acciones disponibles hoy!', 403)
-        else:
-            accion = ''
-            app.config['opcion'] = request.form.get('opciones')
-            opt = app.config['opcion']
-            if opt == '1':
-                accion = 'visitar perfiles'
-            elif opt == '2':
-                accion = 'escribir mensajes'
-                # Recupero el texto del mensaje que deseo enviar
-                app.config['texto_mensaje'] = request.form.get('mensaje')
-                if not app.config['texto_mensaje']:
-                    return apology('¡Introduce un mensaje!', 403)
-            elif opt == '3':
-                accion = 'enviar invitaciones'
-                # Recupero el texto del mensaje que deseo enviar
-                app.config['texto_mensaje'] = request.form.get('mensaje')
-                if not app.config['texto_mensaje']:
-                    return apology('¡Introduce un mensaje!', 403)
-            return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
+        accion = ''
+        app.config['opcion'] = request.form.get('opciones')
+        opt = app.config['opcion']
+        if opt == '1':
+            accion = 'visitar perfiles'
+        elif opt == '2':
+            accion = 'escribir mensajes'
+            # Recupero el texto del mensaje que deseo enviar
+            app.config['texto_mensaje'] = request.form.get('mensaje')
+            if not app.config['texto_mensaje']:
+                return apology('¡Introduce un mensaje!', 403)
+        elif opt == '3':
+            accion = 'enviar invitaciones'
+            # Recupero el texto del mensaje que deseo enviar
+            app.config['texto_mensaje'] = request.form.get('mensaje')
+            if not app.config['texto_mensaje']:
+                return apology('¡Introduce un mensaje!', 403)
+        return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
         
     else:
         if "user_id" in session:
@@ -239,7 +238,8 @@ def linklogin():
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
-            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session['shots'])
+            print("Estoy en LINKLOGIN. El usuario tiene ", session.get('shots', 0), " shots")
+            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
     else:
         return render_template('index.html', current_year=datetime.now().year)
 
@@ -298,7 +298,7 @@ def busqueda():
             # DEBUG
             # num_pags = 1 
             # No rebasar los shots restantes es una condición complementaria de parada
-            while pagina <= num_pags and len(session['perfiles_visitados']) <= session['shots']:  
+            while pagina <= num_pags and len(session['perfiles_visitados']) <= session.get('shots', 0):  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -377,7 +377,7 @@ def busqueda():
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(session['perfiles_visitados'])
-            db.set_shots_by_id(int(session['shots']) - shots_gastados, session["user_id"] )
+            db.set_shots_by_id(int(session.get('shots', 0)) - shots_gastados, session["user_id"] )
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
