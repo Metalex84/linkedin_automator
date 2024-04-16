@@ -43,7 +43,9 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: rellenar y guardar un historial de acciones realizadas
     # TODO: pagina de ayuda
+    # TODO: estilar y poner bonito el front
     
+    # TODO: permitir más que solo 120 shots diarios?
     # TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
     # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com, horecarentable.com o ayira.es
     # TODO: implementar animación de espera mientras está funcionando
@@ -51,7 +53,6 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     # TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
     # TODO: cambiar el renderizador de mensajes de error por uno propio
     # TODO: ajustar anchura de los cuadros de texto de pedir datos
-    # TODO: controlar mostrar / ocultar la contraseña de LinkedIn mientras se está escribiendo
     # TODO: categorizar y discriminar los mensajes de error
 
 
@@ -71,7 +72,8 @@ def after_request(response):
 def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
-        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=user["shots"])
+        session['shots'] = user["shots"]
+        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=session['shots'])
         
     else:
         return render_template('index.html', current_year=datetime.now().year)
@@ -100,9 +102,11 @@ def login():
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             return apology('¡Usuario o contraseña incorrectos!', 403)
-        
+
+        # Guardo el id de usuario para que persista el login        
         session["user_id"] = user[0]['id']
 
+        # Consulto la ultima fecha de conexion del usuario; si es anterior al dia actual, le reseteo los shots
         ultima_conexion = db.get_connection_by_id(session["user_id"])
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
@@ -133,7 +137,7 @@ def register():
     '''
     1. Recupero los datos del formmulario de registro controlando posibles errores
     2. Aplico una función hash para almacenar la contraseña en la BD
-    3. Asigno el máximo de shots a cada usuario nuevo
+    3. Como es usuario nuevo, le asigno el máximo de shots
     '''
 
     if request.method == "POST":
@@ -171,8 +175,7 @@ def acciones():
     '''
     if request.method == 'POST':
         # ¿Permito "shots negativos"?
-        acciones_restantes = db.get_shots_by_id(session["user_id"])
-        if acciones_restantes <= 0:
+        if session['shots'] <= 0:
             return apology('¡No tienes acciones disponibles hoy!', 403)
         else:
             accion = ''
@@ -236,8 +239,7 @@ def linklogin():
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
             return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
         else:
-            remaining_shots = db.get_shots_by_id(session["user_id"])
-            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=remaining_shots)
+            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session['shots'])
     else:
         return render_template('index.html', current_year=datetime.now().year)
 
@@ -295,9 +297,8 @@ def busqueda():
             pagina = 1
             # DEBUG
             # num_pags = 1 
-            # Obtengo los shots restantes del usuario, porque no rebasarlos es una condición complementaria de parada
-            remaining_shots = db.get_shots_by_id(session["user_id"])
-            while pagina <= num_pags and len(session['perfiles_visitados']) <= remaining_shots:  
+            # No rebasar los shots restantes es una condición complementaria de parada
+            while pagina <= num_pags and len(session['perfiles_visitados']) <= session['shots']:  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -372,12 +373,11 @@ def busqueda():
                     # pass
                 pagina += 1
 
-            # Paro el reloj, cierro el scrapper, actualizo shots restantes y muestro resultados
+            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(session['perfiles_visitados'])
-            shots_restantes = db.get_shots_by_id(session["user_id"])
-            db.set_shots_by_id(shots_restantes - shots_gastados, session["user_id"] )
+            db.set_shots_by_id(int(session['shots']) - shots_gastados, session["user_id"] )
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
