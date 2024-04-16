@@ -38,7 +38,6 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 perfiles_visitados = []
 
 
-    # TODO: depurar reseteo diario de shots
     # TODO: escribir mensajes
     # TODO: mensaje personalizado en solicitud de conexiones
     # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
@@ -106,7 +105,6 @@ def login():
         
         session["user_id"] = user[0]['id']
 
-        # TODO: verificar si funciona el reseteo del contador de shots 
         ultima_conexion = db.get_connection_by_id(session["user_id"])
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, DATE_FORMAT)            
