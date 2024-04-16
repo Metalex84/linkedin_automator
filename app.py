@@ -35,21 +35,19 @@ app.config['driver'] = None
 app.config['texto_mensaje'] = None
 MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-perfiles_visitados = []
 
 
     # TODO: escribir mensajes
     # TODO: mensaje personalizado en solicitud de conexiones
-    # TODO: último botón que permita al usuario descargar un archivo los datos recopilados
-    # TODO: poner los datos de contacto en un CSV en una estructura legible para Pabbly -> HubSpot
+    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
+    # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
+    # TODO: rellenar y guardar un historial de acciones realizadas
+    # TODO: pagina de ayuda
     
     # TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
-    # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
-    # TODO: implementar ayuda
-    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com u horecarentable.com o ayira.es
+    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com, horecarentable.com o ayira.es
     # TODO: implementar animación de espera mientras está funcionando
-    # TODO: preguntar al usuario cuántas acciones quiere hacer en cada ciclo de trabajo
-    # TODO: rellenar y guardar un historial de acciones realizadas
+    # TODO: ajustar CSV a estructura legible para Pabbly -> HubSpot
     # TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
     # TODO: cambiar el renderizador de mensajes de error por uno propio
     # TODO: ajustar anchura de los cuadros de texto de pedir datos
@@ -261,7 +259,8 @@ def busqueda():
     2. Recupero el texto de busqueda y realizo la busqueda 
     '''
     if request.method == 'POST':
-        perfiles_visitados = []
+        # Reseteo los perfiles visitados en sesion en cada nueva busqueda
+        session['perfiles_visitados'] = []
         cuadro_texto = request.form.get('texto_busqueda')
         opt = app.config['opcion']
 
@@ -286,7 +285,7 @@ def busqueda():
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, '//h2[contains(@class, "artdeco-empty-state__headline")]')
-            return render_template("done.html", profiles=perfiles_visitados, current_year=datetime.now().year, tiempo='(sin resultados)')
+            return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
             # Obtengo cantidad de resultados y calculo numero de paginas
             str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
@@ -298,7 +297,7 @@ def busqueda():
             # num_pags = 1 
             # Obtengo los shots restantes del usuario, porque no rebasarlos es una condición complementaria de parada
             remaining_shots = db.get_shots_by_id(session["user_id"])
-            while pagina <= num_pags and len(perfiles_visitados) <= remaining_shots:  
+            while pagina <= num_pags and len(session['perfiles_visitados']) <= remaining_shots:  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -332,7 +331,7 @@ def busqueda():
                         
                         # Agrego el contacto a la lista
                         contacto = Persona(nombre, rol, p_url)
-                        perfiles_visitados.append(contacto)
+                        session['perfiles_visitados'].append(contacto)
 
                     except NoSuchElementException:
                         pass
@@ -376,10 +375,10 @@ def busqueda():
             # Paro el reloj, cierro el scrapper, actualizo shots restantes y muestro resultados
             end = time.time()
             app.config['driver'].quit()
-            shots_gastados = len(perfiles_visitados)
+            shots_gastados = len(session['perfiles_visitados'])
             shots_restantes = db.get_shots_by_id(session["user_id"])
             db.set_shots_by_id(shots_restantes - shots_gastados, session["user_id"] )
-            return render_template("done.html", profiles=perfiles_visitados, current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
+            return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
         app.config['driver'].quit()
@@ -391,16 +390,14 @@ def busqueda():
 @login_required
 def descargar():
     ruta = 'perfiles.csv'
-    
+
     #  DEBUG
-    # TODO: Ojo, que no me recupera los perfiles visitados!!!
-    print(perfiles_visitados)
+    print(session['perfiles_visitados'])
     
-    # No se cómo traer "perfiles_visitados" desde "done.html", por eso lo trato como variable global
     with open('perfiles.csv', mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(['Nombre', 'Rol', 'URL'])
-        for perfil in perfiles_visitados:
+        for perfil in session['perfiles_visitados']:
             writer.writerow([perfil.nombre, perfil.rol, perfil.url])
     return send_file(ruta, as_attachment=True)
 
