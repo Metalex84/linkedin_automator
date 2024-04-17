@@ -38,9 +38,8 @@ MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-    # TODO: escribir mensajes
-    # TODO: mensaje personalizado en solicitud de conexiones
-    # TODO: preguntar en "busqueda" al usuario cuántas acciones quiere hacer en cada ciclo
+    # TODO: OJO, escribir mensajes, linea 377
+    # TODO: verificar si funciona el limite de acciones en el bucle paginador
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: rellenar y guardar un historial de acciones realizadas
     # TODO: pagina de ayuda
@@ -297,10 +296,8 @@ def busqueda():
 
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
-            # DEBUG
-            # num_pags = 1 
             # No rebasar los shots restantes es una condición complementaria de parada
-            while pagina <= num_pags and len(session['perfiles_visitados']) <= session.get('shots', 0):  
+            while pagina <= num_pags and len(session['perfiles_visitados']) <= int(session.get('shots', 0)):  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -311,7 +308,7 @@ def busqueda():
                 i = 1
                 for p in visit_profiles:
                     try:
-                        # Si 'p' fuese un "Miembro de LinkedIn", estos elementos no existirias, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
+                        # Si 'p' fuese un "Miembro de LinkedIn", estos elementos no existirían, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
                         path_name = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
                         path_role = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[2]"
                         nombre = app.config['driver'].find_element(By.XPATH, path_name).text
@@ -323,9 +320,9 @@ def busqueda():
                         # Puede que más adelante necesite hacer algo con el nombre de usuario de LinkedIn de cada contacto
                         usuario = extract_username(p_url)
 
-                        # Y esto solo me sirve a efectos de depuración
-                        # TODO: ¿podria sacarse esta informacion de forma visible por el usuario, o me la guardo como un log en la BD?
-                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        # DEBUG
+                        # print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        #
                         
                         if opt == '1':
                             # Visito abriendo en nueva pestaña; ya no tengo que hacer nada más (no mandaré mensajes ni solicitudes de conexión)
@@ -353,26 +350,36 @@ def busqueda():
                         app.config['driver'].execute_script("arguments[0].click();", send)
                         # TODO: conseguir saltar a contactos con mayor nivel de privacidad
                 elif opt == '2':
-                    # TODO: implementar automatizacion de envio de mensajes
-                      # ENVIO DE MENSAJES
-                    if len(visit_profiles) == 1:
-                        # Path del boton "Enviar mensaje" si solo hay un perfil en la pagina
-                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li/div/div/div/div[3]/div/div/button"
-                    else:
-                        # Path del boton "Enviar mensaje" si hay mas de un perfil en la pagina
-                        button = f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[3]/div/button"
-                    app.config['driver'].find_element(By.XPATH, button).click()
-                    
-                    # Para la personalizacion, quedarme solo con el nombre.
-                    mensaje = app.config['texto_mensaje'].replace('[[]]', nombre.split(' ')[0])
-                    
-                    # TODO: Depurar poner el "mensaje" en el recuadro y lanzarlo
-                    app.config['driver'].find_element(By.XPATH, f"//div[4]/aside[1]/div[{i+1}]/div[1]/div[2]/div/form/div[2]").click()
-                    
-                    fieldtext = app.config['driver'].find_elements(By.TAG_NAME, "p")
-                    fieldtext[i].send_keys(mensaje)
-                    fieldtext[i].send_keys(Keys.RETURN)
-                    # pass
+                    # ENVIO DE MENSAJES
+                    message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
+                    for btn in message_buttons:
+                        # Click en el boton de mandar el mensaje y esperar un poco
+                        app.config['driver'].execute_script("arguments[0].click();", btn)
+                        wait_random_time()
+                        # Conseguir el nombre del destinatario y personalizar el mensaje
+                        name = btn.get_attribute('aria-label').split(' ')[3]
+                        custom_message = app.config['texto_mensaje'].replace('[[]]', name)
+                        # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
+                        app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
+                        textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                        # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
+                        textfields[-6].clear()
+                        textfields[-5].clear()
+                        # En el párrafo que queda, escribo el mensaje personalizado y vuelvo a esperar
+                        textfields[-5].send_keys(custom_message)
+                        
+                        # TODO: ojo, este es un punto critico!!!!
+                        # Hago click en enviar
+                        # send_button = app.config['driver'].find_element(By.XPATH, "//button[starts-with(@class, 'msg-form__send-button')]")
+                        # app.config['driver'].execute_script("arguments[0].click();", send_button)
+                        
+                        # Busco darle a intro en el cuadro de texto, pero para eso hay que tener configurado antes eso en el LinkedIn de cada cual.
+                        textfields[-5].send_keys(Keys.RETURN)
+
+                        # Hago click en cerrar la ventanita del mensaje y espero
+                        close_window_msg = app.config['driver'].find_element(By.XPATH, "//button[contains(@class, 'msg-overlay-bubble-header__control artdeco-button artdeco-button--circle artdeco-button--muted artdeco-button--1 artdeco-button--tertiary ember-view')]")
+                        app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
+                        wait_random_time()
                 pagina += 1
 
             # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
@@ -391,11 +398,8 @@ def busqueda():
 @app.route('/descargar', methods=['POST', 'GET'])
 @login_required
 def descargar():
+    ''' Descarga el archivo CSV con la información de los perfiles sobre los que se ha actuado '''
     ruta = 'perfiles.csv'
-
-    #  DEBUG
-    print(session['perfiles_visitados'])
-    
     with open('perfiles.csv', mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(['Nombre', 'Rol', 'URL'])
