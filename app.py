@@ -38,27 +38,6 @@ MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-    # TODO: primero construir lista de url de perfiles, luego ir abriendo con driver.get() cada URL de perfil.
-    # TODO: OJO, escribir mensajes, linea 377
-    # TODO: verificar si funciona el limite de acciones en el bucle paginador
-    # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
-    # TODO: rellenar y guardar un historial de acciones realizadas
-    # TODO: pagina de ayuda
-    # TODO: estilar y poner bonito el front
-    # TODO: incluir en la info del csv la acción que se ha realizado
-
-    # TODO: ¿guardar en el csv el nombre de usuario de LinkedIn, o la URL de su perfil?
-    # TODO: permitir más que solo 120 shots diarios?
-    # TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
-    # TODO: control de registro forma de email: solo de la forma @juanpecarconsultores.com, horecarentable.com o ayira.es
-    # TODO: implementar animación de espera mientras está funcionando
-    # TODO: ajustar CSV a estructura legible para Pabbly -> HubSpot
-    # TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
-    # TODO: cambiar el renderizador de mensajes de error por uno propio
-    # TODO: ajustar anchura de los cuadros de texto de pedir datos
-    # TODO: categorizar y discriminar los mensajes de error
-
-
 
 @app.after_request
 def after_request(response):
@@ -191,10 +170,6 @@ def acciones():
                 return apology('¡Introduce un mensaje!', 403)
         elif opt == '3':
             accion = 'enviar invitaciones'
-            # Recupero el texto del mensaje que deseo enviar
-            app.config['texto_mensaje'] = request.form.get('mensaje')
-            if not app.config['texto_mensaje']:
-                return apology('¡Introduce un mensaje!', 403)
         return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
         
     else:
@@ -298,7 +273,7 @@ def busqueda():
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
             # No rebasar los shots restantes es una condición complementaria de parada
-            while pagina <= num_pags and len(session['perfiles_visitados']) <= int(session.get('shots', 0)):  
+            while pagina <= num_pags and len(session['perfiles_visitados']) < int(request.form.get('numero_shots')):  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -322,13 +297,13 @@ def busqueda():
                         usuario = extract_username(p_url)
 
                         # DEBUG
-                        # print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
+                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
                         #
                         
-                        if opt == '1':
+                        # if opt == '1':
                             # Visito abriendo en nueva pestaña; ya no tengo que hacer nada más (no mandaré mensajes ni solicitudes de conexión)
                             # TODO: OJO el navegador puede cerrarse inesperadamente si se abren demasiadas pestañas
-                            app.config['driver'].execute_script(f"window.open('{p_url}');")
+                            # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         
                         # Agrego el contacto a la lista
                         contacto = Persona(nombre, rol, p_url)
@@ -339,6 +314,7 @@ def busqueda():
                     finally:
                         i += 1
                         wait_random_time()
+
                 # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
                 if opt == '3':
                     # Construyo la lista de botones "Conectar" en cada una de las paginas
@@ -350,6 +326,7 @@ def busqueda():
                         send = app.config['driver'].find_element(By.XPATH, "//button[@aria-label='Enviar ahora']")
                         app.config['driver'].execute_script("arguments[0].click();", send)
                         # TODO: conseguir saltar a contactos con mayor nivel de privacidad
+
                 elif opt == '2':
                     # ENVIO DE MENSAJES
                     message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
@@ -382,6 +359,12 @@ def busqueda():
                         app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
                         wait_random_time()
                 pagina += 1
+            
+            # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion:
+            if opt == '1':
+                for person in session['perfiles_visitados']:
+                    app.config['driver'].get(person.url)
+                    wait_random_time()
 
             # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
             end = time.time()

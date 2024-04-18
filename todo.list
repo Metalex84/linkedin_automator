@@ -1,6 +1,5 @@
-    # TODO: primero construir lista de url de perfiles, luego ir abriendo con driver.get() cada URL de perfil.
     # TODO: implementar botón para restablecer contraseña en el login, con envío de mail de confirmación.
-    # TODO: OJO, escribir mensajes, linea 377
+    # TODO: OJO al escribir mensajes, que igual no se puede!!
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
     # TODO: rellenar y guardar un historial de acciones realizadas
     # TODO: pagina de ayuda
