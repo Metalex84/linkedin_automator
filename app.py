@@ -38,6 +38,7 @@ MAX_SHOTS = 120
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
+    # TODO: primero construir lista de url de perfiles, luego ir abriendo con driver.get() cada URL de perfil.
     # TODO: OJO, escribir mensajes, linea 377
     # TODO: verificar si funciona el limite de acciones en el bucle paginador
     # TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
