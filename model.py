@@ -109,6 +109,19 @@ def set_shots_by_id(shots, id):
 
 
 
+def set_password_by_id(password, id):
+    '''Fija la contraseña por el id de usuario'''
+    conn = sql.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE usuarios SET password = ? WHERE id = ?""", 
+        (password, id)
+        )
+    conn.commit()
+    conn.close()
+
+
+
 def get_shots_by_id(id):
     '''Obtiene el número de shots restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')

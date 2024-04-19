@@ -147,6 +147,41 @@ def register():
 
 
 
+@app.route('/forgot', methods=['GET'])
+def forgot():
+    return render_template('reset.html', current_year=datetime.now().year)
+
+
+@app.route('/reset', methods=['POST', 'GET'])
+def reset():
+    ''' Recojo la nueva contraseña y la confirmación, las comparo y actualizo la BD '''
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirmation = request.form.get('confirmation')
+
+        if not username:
+            print("reset: no username")
+            return apology('¡Introduce tu nombre de usuario!', 403)
+        elif not password:
+            return apology('¡Introduce una nueva contraseña!', 403)
+        elif not confirmation:
+            return apology('¡Confirma tu nueva contraseña!', 403)
+        elif password != confirmation:
+            return apology('¡Las contraseñas no coinciden!', 403)
+        else:
+            user = db.get_user_by_name(username)
+            if len(user) != 1:
+                return apology('¡Usuario o contraseña incorrectos!', 403)
+            hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
+            db.set_password_by_id(hash, user[0]['id'])
+            return redirect('/')
+    else:
+        return render_template('reset.html', current_year=datetime.now().year)
+
+
+
+
 @app.route('/acciones', methods=['POST', 'GET'])
 @login_required
 def acciones():
@@ -207,8 +242,7 @@ def linklogin():
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
         username.send_keys(usuario)
         password.send_keys(contrasena)
-        submit = app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]')
-        submit.click()
+        app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]').click()
         wait_random_time()
 
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
@@ -386,9 +420,15 @@ def descargar():
     ruta = 'perfiles.csv'
     with open('perfiles.csv', mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['Nombre', 'Rol', 'URL'])
+        writer.writerow(['Nombre', 'Rol', 'URL', 'Fecha de visita', 'Accion'])
+        if app.config['opcion'] == '1':
+            accion = 'Perfil visitado'
+        elif app.config['opcion'] == '2':
+            accion = 'Mensaje enviado'
+        elif app.config['opcion'] == '3':
+            accion = 'Solicitud de conexión'
         for perfil in session['perfiles_visitados']:
-            writer.writerow([perfil.nombre, perfil.rol, perfil.url])
+            writer.writerow([perfil.nombre, perfil.rol, perfil.url, datetime.now().date(), accion])
     return send_file(ruta, as_attachment=True)
 
 

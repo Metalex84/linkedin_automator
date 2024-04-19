@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Restablece tu contraseña
+{% endblock %}
+
+{% block main %}
+<h2>Restablece tu contraseña</h2>
+<form action="/reset" method="post">
+    <div class="mb-3">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username"
+            placeholder="eMail" type="text">
+    </div>
+    <div class="mb-3">
+        <input class="form-control mx-auto w-50" name="password" placeholder="Nueva contraseña" type="password">
+    </div>
+    <div class="mb-3">
+        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir nueva contraseña" type="password">
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-primary" type="submit">Restablecer contraseña</button>
+    </div>
+</form>
+{% endblock %}
