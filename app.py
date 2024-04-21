@@ -205,6 +205,10 @@ def acciones():
                 return apology('¡Introduce un mensaje!', 403)
         elif opt == '3':
             accion = 'enviar invitaciones'
+        # TODO:
+        # recuperar credenciales de LinkedIn almacenadas en BD.
+        # - si no devuelvo nada, ir a linklogin
+        # - si recupero algo, ir a busqueda
         return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
         
     else:
@@ -237,6 +241,9 @@ def linklogin():
         contrasena = request.form.get('password')
         if not contrasena:
             return apology('¡Introduce tu contraseña de LinkedIn!', 403)
+        # TODO: preguntar al usuario que si desea almacenar en BD las credenciales de LinkedIn
+        # - si sí: almacenar en BD
+        # - si no: no hacer nada
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
