@@ -9,7 +9,7 @@ import math
 
 class Persona:
     ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
-    def __init__(self, nombre, rol, url, username):
+    def __init__(self, nombre, rol, url):
         self.nombre = nombre
         self.rol = rol
         self.url = url
