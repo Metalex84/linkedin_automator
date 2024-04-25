@@ -1,10 +1,12 @@
 # TODO: OJO al escribir mensajes, que igual no se puede!!
-# TODO: permitir guardar las claves de LinkedIn aceptando un T & C de tratamiento de datos
 # TODO: rellenar y guardar un historial de acciones realizadas
 # TODO: pagina de ayuda
+# TODO: En lugar de mostrar en "busqueda" el username de LinkedIn, recuperar el nombre propio del usuario scrapeando la homepage de LinkedIn
 # TODO: estilar y poner bonito el front
+# TODO: controlar valores en limitacion de cantidad de shots. ¿Es realmente un valor opcional?
 
 ## TODO: confirmacion de cambio de contraseña enviando link de autentificación al email
+## TODO: revisar si puedo en cada template de Jinja recuperar datos de session en lugar de pasar por parametro a la pagina
 ## TODO: ¿guardar en el csv el nombre de usuario de LinkedIn, o la URL de su perfil?
 ## TODO: permitir más que solo 120 shots diarios?
 ## TODO: revisar politica de POST y GET de cada funcion

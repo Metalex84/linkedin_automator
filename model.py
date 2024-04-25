@@ -136,33 +136,3 @@ def get_shots_by_id(id):
         return shots[0][0]
     else:
         return None
-    
-
-
-def set_linkedin_credentials(linkedin_user, linkedin_password, user_id):
-    '''Fija las credenciales de LinkedIn por el id de usuario'''
-    conn = sql.connect('linkedin.db')
-    cursor = conn.cursor()
-    cursor.execute(
-        """INSERT INTO usuarios (link_user, link_pass, id_user) VALUES (?, ?, ?)""", 
-        (linkedin_user, linkedin_password, user_id)
-        )
-    conn.commit()
-    conn.close()
-
-
-
-def get_linkedin_credentials(user_id):
-    '''Obtiene las credenciales de LinkedIn por el id de usuario'''
-    conn = sql.connect('linkedin.db')
-    cursor = conn.cursor()
-    cursor.execute(
-        f"""SELECT link_user, link_pass FROM credenciales WHERE id_user = {user_id}"""
-        )
-    credentials = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    if credentials:
-        return credentials[0]
-    else:
-        return None

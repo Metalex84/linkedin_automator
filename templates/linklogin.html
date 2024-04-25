@@ -14,6 +14,7 @@ Conectate a LinkedIn
 
 
 {% block main %}
+{% if not session.link_user or not session.link_pass %}
 <h2>Introduce tus claves de LinkedIn</h2>
 <form action="/linklogin" method="post">
     <div class="mb-3">
@@ -28,4 +29,13 @@ Conectate a LinkedIn
         <button class="btn btn-primary" type="submit">Entrar para {{ accion }}</button>
     </div>
 </form>
+{% else %}
+<h2>Ya estás conectado a LinkedIn</h2>
+<form action="/linklogin" method="post">
+    <div class="mb-3">
+        <button class="btn btn-primary" type="submit">Entrar para {{ accion }}</button>
+    </div>
+</form>
+{% endif %}
+
 {% endblock %}

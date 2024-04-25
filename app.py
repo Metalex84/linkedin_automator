@@ -154,6 +154,7 @@ def forgot():
     return render_template('reset.html', current_year=datetime.now().year)
 
 
+
 @app.route('/reset', methods=['POST', 'GET'])
 def reset():
     ''' Recojo la nueva contraseña y la confirmación, las comparo y actualizo la BD '''
@@ -207,10 +208,6 @@ def acciones():
                 return apology('¡Introduce un mensaje!', 403)
         elif opt == '3':
             accion = 'enviar invitaciones'
-        # TODO:
-        # recuperar credenciales de LinkedIn almacenadas en BD.
-        # - si no devuelvo nada, ir a linklogin
-        # - si recupero algo, ir a busqueda
         return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
         
     else:
@@ -236,21 +233,29 @@ def linklogin():
     2. Controlo posible fallo de login, devolviendo un mensaje de error
     '''
     if request.method == 'POST':
+        # Si no tengo los datos cogidos desde la session, los recojo del formulario
+        if not (session.get('link_user') and session.get('link_pass')):
+            usuario = request.form.get('username')
+            if not usuario:
+                return apology('¡Introduce tu usuario de LinkedIn!', 403)
+            contrasena = request.form.get('password')
+            if not contrasena:
+                return apology('¡Introduce tu contraseña de LinkedIn!', 403)
+        else:
+            usuario = session.get('link_user')
+            contrasena = session.get('link_pass')
+        
+        # Almaceno credenciales LinkedIn en sesión para sucesivas llamadas
+        session['link_user'] = usuario
+        session['link_pass'] = contrasena
+
+        # Abro navegador y redirijo a la página de LinkedIn
         app.config['driver'] = webdriver.Chrome()
-        usuario = request.form.get('username')
-        if not usuario:
-            return apology('¡Introduce tu usuario de LinkedIn!', 403)
-        contrasena = request.form.get('password')
-        if not contrasena:
-            return apology('¡Introduce tu contraseña de LinkedIn!', 403)
-        # TODO: preguntar al usuario que si desea almacenar en BD las credenciales de LinkedIn
-        # - si sí: almacenar en BD
-        # - si no: no hacer nada
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
-        username.send_keys(usuario)
-        password.send_keys(contrasena)
+        username.send_keys(session.get('link_user'))
+        password.send_keys(session.get('link_pass'))
         app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]').click()
         wait_random_time()
 
