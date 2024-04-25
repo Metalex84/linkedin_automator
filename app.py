@@ -13,7 +13,7 @@ import secrets
 import time
 import csv
 
-from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username
+from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username, check_valid_username
 import model as db
 
 
@@ -138,6 +138,8 @@ def register():
             return apology("¡Confirma tu contraseña!", 400)
         elif password != confirmation:
             return apology("¡Las contraseñas no coinciden!", 400)
+        elif not check_valid_username(username):
+            return apology("¡Utiliza tu correo corporativo como nombre de usuario!", 400)
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.insert_user(username, hash, MAX_SHOTS)

@@ -57,6 +57,16 @@ def number_of_pages(str_results):
 
 
 
+def check_valid_username(username):
+    ''' Funcion que comprueba si el nombre de usuario se ajusta al email corporativo '''
+    str = username.split('@')
+    if str[1] == 'horecarentable.com':
+        return True
+    else:
+        return False
+    
+    
+
 def apology(message, code=400):
     ''' Un renderizador de mensajes de error '''
 
