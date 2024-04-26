@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.chrome.options import Options
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -250,7 +251,9 @@ def linklogin():
         session['link_pass'] = contrasena
 
         # Abro navegador y redirijo a la página de LinkedIn
-        app.config['driver'] = webdriver.Chrome()
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        app.config['driver'] = webdriver.Chrome(options=chrome_options)
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
