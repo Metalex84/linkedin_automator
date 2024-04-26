@@ -3,7 +3,8 @@
 # TODO: pagina de ayuda
 # TODO: En lugar de mostrar en "busqueda" el username de LinkedIn, recuperar el nombre propio del usuario scrapeando la homepage de LinkedIn
 # TODO: estilar y poner bonito el front
-# TODO: controlar valores en limitacion de cantidad de shots. ¿Es realmente un valor opcional?
+# TODO: controlar valores en limitacion de cantidad de shots. Ponerlo opcional. Ojo al formato y errores de input. Ojo: multiplos de 10, ¿o dejarlo como valor orientativo?
+# TODO: configurar webdriver remoto?
 
 ## TODO: confirmacion de cambio de contraseña enviando link de autentificación al email
 ## TODO: revisar si puedo en cada template de Jinja recuperar datos de session en lugar de pasar por parametro a la pagina

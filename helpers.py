@@ -67,6 +67,21 @@ def check_valid_username(username):
     
     
 
+def check_number(number, maximum):
+    ''' Funcion que comprueba si el numero de shots maximo que el usuario introduce está en el rango correcto y no son caracteres no numéricos'''
+    try:
+        shots = int(number)
+        if shots <= 0:
+            return False
+        elif shots > maximum:
+            return False
+        else:
+            return shots
+    except ValueError:
+        return False
+    
+
+
 def apology(message, code=400):
     ''' Un renderizador de mensajes de error '''
 

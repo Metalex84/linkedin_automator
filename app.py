@@ -7,8 +7,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 # from selenium.webdriver.chrome.options import Options
 
-from webdriver_manager.chrome import ChromeDriverManager
-
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from datetime import datetime
@@ -16,7 +14,7 @@ import secrets
 import time
 import csv
 
-from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username, check_valid_username
+from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username, check_valid_username, check_number
 import model as db
 
 
@@ -187,7 +185,6 @@ def reset():
 
 
 
-
 @app.route('/acciones', methods=['POST', 'GET'])
 @login_required
 def acciones():
@@ -256,7 +253,10 @@ def linklogin():
         # chrome_options = Options()
         # chrome_options.add_argument("--headless")
         # app.config['driver'] = webdriver.Chrome(options=chrome_options)
-        app.config['driver'] = webdriver.Chrome(ChromeDriverManager().install())
+        
+        # app.config['driver'] =  webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', options=webdriver.FirefoxOptions())
+        app.config['driver'] = webdriver.Firefox()
+
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
@@ -324,10 +324,14 @@ def busqueda():
             str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
             num_pags = number_of_pages(str_results)
 
+            maximum_shots = check_number(request.form.get('numero_shots'))
+
+            # TODO: escribir lógica de control (qué hago si este número no es correcto)
+
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
             # No rebasar los shots restantes es una condición complementaria de parada
-            while pagina <= num_pags and len(session['perfiles_visitados']) < int(request.form.get('numero_shots')):  
+            while pagina <= num_pags and len(session['perfiles_visitados']) < maximum_shots:  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -353,11 +357,6 @@ def busqueda():
                         # DEBUG
                         print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
                         #
-                        
-                        # if opt == '1':
-                            # Visito abriendo en nueva pestaña; ya no tengo que hacer nada más (no mandaré mensajes ni solicitudes de conexión)
-                            # TODO: OJO el navegador puede cerrarse inesperadamente si se abren demasiadas pestañas
-                            # app.config['driver'].execute_script(f"window.open('{p_url}');")
                         
                         # Agrego el contacto a la lista
                         contacto = Persona(nombre, rol, p_url)
