@@ -78,19 +78,21 @@ def login():
     if request.method == 'POST':
         if not request.form.get('username'):
             flash('¡Introduce tu nombre de usuario!')
-            return redirect('/')
+            return redirect(url_for('index'))
         elif not request.form.get('password'):
             flash('¡Introduce tu contraseña!')
-            return redirect('/')
+            return redirect(url_for('index'))
         
         user = db.get_user_by_name(request.form.get('username'))
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             flash('¡Usuario o contraseña incorrectos!')
-            return redirect('/')
+            return redirect(url_for('index'))
 
-        # Guardo el id de usuario para que persista el login        
+        # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
         session["user_id"] = user[0]['id']
+        session["username"] = user[0]['usuario']
+        session["shots"] = user[0]['shots']
 
         # Consulto la ultima fecha de conexion del usuario; si es anterior al dia actual, le reseteo los shots
         ultima_conexion = db.get_connection_by_id(session["user_id"])
@@ -210,21 +212,21 @@ def acciones():
     user = db.get_user_by_id(session["user_id"])
     session['shots'] = user["shots"]
     if request.method == 'POST':
-        accion = ''
+        session['accion'] = ''
         app.config['opcion'] = request.form.get('opciones')
         opt = app.config['opcion']
         if opt == '1':
-            accion = 'visitar perfiles'
+            session['accion'] = 'visitar perfiles'
         elif opt == '2':
-            accion = 'escribir mensajes'
+            session['accion'] = 'escribir mensajes'
             # Recupero el texto del mensaje que deseo enviar
             app.config['texto_mensaje'] = request.form.get('mensaje')
             if not app.config['texto_mensaje']:
                 flash('¡Introduce un mensaje!')
-                return redirect(url_for('actions'))
+                return redirect(url_for('acciones'))
         elif opt == '3':
-            accion = 'enviar invitaciones'
-        return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
+            session['accion'] = 'enviar invitaciones'
+        return render_template('linklogin.html', current_year=datetime.now().year)
         
     else:
         if "user_id" in session:
@@ -264,10 +266,6 @@ def linklogin():
             usuario = session.get('link_user')
             contrasena = session.get('link_pass')
         
-        # Almaceno credenciales LinkedIn en sesión para sucesivas llamadas
-        session['link_user'] = usuario
-        session['link_pass'] = contrasena
-
         # Abro navegador y redirijo a la página de LinkedIn
         # chrome_options = Options()
         # chrome_options.add_argument("--headless")
@@ -275,22 +273,30 @@ def linklogin():
         
         # app.config['driver'] =  webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', options=webdriver.FirefoxOptions())
         app.config['driver'] = webdriver.Firefox()
-
         app.config['driver'].get('https://www.linkedin.com')
         username = app.config['driver'].find_element(By.XPATH, '//*[@id="session_key"]')
         password = app.config['driver'].find_element(By.XPATH, '//*[@id="session_password"]')
-        username.send_keys(session.get('link_user'))
-        password.send_keys(session.get('link_pass'))
+        username.send_keys(usuario)
+        password.send_keys(contrasena)
         app.config['driver'].find_element(By.XPATH, '//button[@type="submit"]').click()
         wait_random_time()
 
-        if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
+        # Si la URL a la que llego es la de inicio o la de nuevamente introducir login, es que las credenciales no son correctas
+        if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit' or app.config['driver'].current_url == 'https://www.linkedin.com':
             flash('¡Usuario o contraseña de LinkedIn incorrectos!')
+            app.config['driver'].quit()
             return redirect(url_for('linklogin'))
         else:
-            return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
+            # Almaceno credenciales LinkedIn en sesión para sucesivas llamadas solo si el login fue correcto
+            session['link_user'] = usuario
+            session['link_pass'] = contrasena
+            nombre_propio = app.config['driver'].find_element(By.XPATH, '/html/body/div[6]/div[3]/div/div/div[2]/div/div/div/div/div[1]/div[1]/a/div[2]').text.split(' ')[0]
+            return render_template('busqueda.html', usuario=nombre_propio, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
     else:
-        return render_template('index.html', current_year=datetime.now().year)
+        if session.get('user_id') is not None:
+            return render_template('linklogin.html', current_year=datetime.now().year)
+        else:
+            return render_template('index.html', current_year=datetime.now().year)
 
 
 
@@ -309,10 +315,24 @@ def busqueda():
     1. Recupero la opción y en base a ella ejecuto unas u otras funciones
     2. Recupero el texto de busqueda y realizo la busqueda 
     '''
-    if request.method == 'POST':
-        if int(request.form.get('numero_shots')) > session.get('shots', 0):
+    if request.method == 'POST':   
+        # Si el usuario no especifica cuántos shots quiere gastar, por defecto le doy el máximo de los que dispone
+        numero_shots = request.form.get('numero_shots')
+        if numero_shots.strip() == '':
+            # TODO: Emitir alerta modal JS para que el usuario se pueda echar atrás, hacerlo desde el lado del cliente
+            numero_shots = int(session.get('shots', 0))
+        else:
+            # Valido si el dato introducido está en los límites, es un entero positivo, etc
+            numero_shots = check_number(request.form.get('numero_shots'), session.get('shots', 0))
+            if not numero_shots:
+                flash(f'¡Introduce un número entero entre 1 y {session.get('shots', 0)}!')
+                return redirect(url_for('busqueda'))
+            
+        # Si el número de shots que el usuario pide hacer es mayor que los que tiene disponibles, le devuelvo un mensaje de error
+        if numero_shots > int(session.get('shots', 0)):
             flash('¡No tienes suficientes acciones restantes!')
             return redirect(url_for('busqueda'))
+        
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
         session['perfiles_visitados'] = []
         cuadro_texto = request.form.get('texto_busqueda')
@@ -344,15 +364,11 @@ def busqueda():
             # Obtengo cantidad de resultados y calculo numero de paginas
             str_results = app.config['driver'].find_element(By.XPATH, '//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2')
             num_pags = number_of_pages(str_results)
-
-            maximum_shots = check_number(request.form.get('numero_shots'))
-
-            # TODO: escribir lógica de control (qué hago si este número no es correcto)
-
+        
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
             # No rebasar los shots restantes es una condición complementaria de parada
-            while pagina <= num_pags and len(session['perfiles_visitados']) < maximum_shots:  
+            while pagina <= num_pags and len(session['perfiles_visitados']) < numero_shots:  
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(f"https://www.linkedin.com/search/results/people/?keywords={cuadro_texto}{deep}&page={pagina}")
                 wait_random_time()
@@ -448,9 +464,12 @@ def busqueda():
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
-        app.config['driver'].quit()
-        return render_template('index.html', current_year=datetime.now().year)
-
+        if session.get('user_id') is not None:
+            return render_template('busqueda.html', usuario=session.get('link_user'), current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
+        else:
+            app.config['driver'].quit()
+            return render_template('index.html', current_year=datetime.now().year)
+        
 
 
 @app.route('/descargar', methods=['POST', 'GET'])

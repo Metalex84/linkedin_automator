@@ -75,7 +75,7 @@ def check_number(number, maximum):
         shots = int(number)
         if shots <= 0:
             return False
-        elif shots > maximum:
+        elif shots > int(maximum):
             return False
         else:
             return shots

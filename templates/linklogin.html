@@ -26,14 +26,14 @@ Conectate a LinkedIn
             aria-describedby="mostrar-contraseña">
     </div>
     <div class="mb-3">
-        <button class="btn btn-primary" type="submit">Entrar para {{ accion }}</button>
+        <button class="btn btn-primary" type="submit">Entrar para {{ session.accion }}</button>
     </div>
 </form>
 {% else %}
 <h2>Ya estás conectado a LinkedIn</h2>
 <form action="/linklogin" method="post">
     <div class="mb-3">
-        <button class="btn btn-primary" type="submit">Entrar para {{ accion }}</button>
+        <button class="btn btn-primary" type="submit">Entrar para {{ session.accion }}</button>
     </div>
 </form>
 {% endif %}
