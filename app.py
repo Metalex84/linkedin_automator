@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, render_template, request, session, send_file
+from flask import Flask, flash, redirect, render_template, url_for, request, session, send_file
 from flask_session import Session
 
 from selenium import webdriver
@@ -14,7 +14,7 @@ import secrets
 import time
 import csv
 
-from helpers import Persona, wait_random_time, parse_time, number_of_pages, apology, login_required, extract_username, check_valid_username, check_number
+from helpers import Persona, wait_random_time, parse_time, number_of_pages, login_required, extract_username, check_valid_username, check_number
 import model as db
 
 
@@ -77,14 +77,17 @@ def login():
 
     if request.method == 'POST':
         if not request.form.get('username'):
-            return apology('¡Introduce tu nombre de usuario!', 403)
+            flash('¡Introduce tu nombre de usuario!')
+            return redirect('/')
         elif not request.form.get('password'):
-            return apology('¡Introduce tu contraseña!', 403)
+            flash('¡Introduce tu contraseña!')
+            return redirect('/')
         
         user = db.get_user_by_name(request.form.get('username'))
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
-            return apology('¡Usuario o contraseña incorrectos!', 403)
+            flash('¡Usuario o contraseña incorrectos!')
+            return redirect('/')
 
         # Guardo el id de usuario para que persista el login        
         session["user_id"] = user[0]['id']
@@ -110,7 +113,7 @@ def logout():
     '''
     db.set_connection_by_id(datetime.now().strftime(DATE_FORMAT), session["user_id"])
     session.clear()
-    return redirect('/')
+    return redirect(url_for('index'))
 
 
 
@@ -120,6 +123,7 @@ def register():
     1. Recupero los datos del formmulario de registro controlando posibles errores
     2. Aplico una función hash para almacenar la contraseña en la BD
     3. Como es usuario nuevo, le asigno el máximo de shots
+    4. Guardo el usuario en sesión para, tras el registro, dirigirle a la página de acciones
     '''
 
     if request.method == "POST":
@@ -130,21 +134,28 @@ def register():
         cursor = db.get_user_by_name(username)
 
         if not username:
-            return apology("¡Introduce un nombre de usuario!", 400)
+            flash('¡Introduce un nombre de usuario!')
+            return redirect(url_for('register'))
         elif len(cursor) != 0:
-            return apology("¡Este nombre de usuario ya existe!", 400)
+            flash('¡Este nombre de usuario ya existe!')
+            return redirect(url_for('register'))
         elif not password:
-            return apology("¡Introduce una contraseña!", 400)
+            flash('¡Introduce una contraseña!')
+            return redirect(url_for('register'))
         elif not confirmation:
-            return apology("¡Confirma tu contraseña!", 400)
+            flash('¡Confirma tu contraseña!')
+            return redirect(url_for('register'))
         elif password != confirmation:
-            return apology("¡Las contraseñas no coinciden!", 400)
+            flash('¡Las contraseñas no coinciden!')
+            return redirect(url_for('register'))
         elif not check_valid_username(username):
-            return apology("¡Utiliza tu correo corporativo como nombre de usuario!", 400)
+            flash('¡Utiliza tu correo corporativo como nombre de usuario!')
+            return redirect(url_for('register'))
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.insert_user(username, hash, MAX_SHOTS)
-            return redirect("/")
+            session["user_id"] = db.get_user_by_name(username)[0]['id']
+            return redirect(url_for('acciones'))
     else:
         return render_template('register.html', current_year=datetime.now().year)
 
@@ -165,21 +176,25 @@ def reset():
         confirmation = request.form.get('confirmation')
 
         if not username:
-            print("reset: no username")
-            return apology('¡Introduce tu nombre de usuario!', 403)
+            flash('¡Introduce tu nombre de usuario!')
+            return redirect(url_for('reset'))
         elif not password:
-            return apology('¡Introduce una nueva contraseña!', 403)
+            flash('¡Introduce una nueva contraseña!')
+            return redirect(url_for('reset'))
         elif not confirmation:
-            return apology('¡Confirma tu nueva contraseña!', 403)
+            flash('¡Confirma tu nueva contraseña!')
+            return redirect(url_for('reset'))
         elif password != confirmation:
-            return apology('¡Las contraseñas no coinciden!', 403)
+            flash('¡Las contraseñas no coinciden!')
+            return redirect(url_for('reset'))
         else:
             user = db.get_user_by_name(username)
             if len(user) != 1:
-                return apology('¡Usuario o contraseña incorrectos!', 403)
+                flash('¡Hay más de un usuario con el mismo login! Contacta con el administrador del sistema')
+                return redirect(url_for('reset'))
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.set_password_by_id(hash, user[0]['id'])
-            return redirect('/')
+            return redirect(url_for('index'))
     else:
         return render_template('reset.html', current_year=datetime.now().year)
 
@@ -205,7 +220,8 @@ def acciones():
             # Recupero el texto del mensaje que deseo enviar
             app.config['texto_mensaje'] = request.form.get('mensaje')
             if not app.config['texto_mensaje']:
-                return apology('¡Introduce un mensaje!', 403)
+                flash('¡Introduce un mensaje!')
+                return redirect(url_for('actions'))
         elif opt == '3':
             accion = 'enviar invitaciones'
         return render_template('linklogin.html', current_year=datetime.now().year, accion=accion)
@@ -236,11 +252,14 @@ def linklogin():
         # Si no tengo los datos cogidos desde la session, los recojo del formulario
         if not (session.get('link_user') and session.get('link_pass')):
             usuario = request.form.get('username')
-            if not usuario:
-                return apology('¡Introduce tu usuario de LinkedIn!', 403)
             contrasena = request.form.get('password')
-            if not contrasena:
-                return apology('¡Introduce tu contraseña de LinkedIn!', 403)
+
+            if not usuario:
+                flash('¡Introduce tu usuario de LinkedIn!')
+                return redirect(url_for('linklogin'))
+            elif not contrasena:
+                flash('¡Introduce tu contraseña de LinkedIn!')
+                return redirect(url_for('linklogin'))
         else:
             usuario = session.get('link_user')
             contrasena = session.get('link_pass')
@@ -266,7 +285,8 @@ def linklogin():
         wait_random_time()
 
         if app.config['driver'].current_url == 'https://www.linkedin.com/uas/login-submit':
-            return apology('¡Usuario o contraseña de LinkedIn incorrectos!', 403)
+            flash('¡Usuario o contraseña de LinkedIn incorrectos!')
+            return redirect(url_for('linklogin'))
         else:
             return render_template('busqueda.html', usuario=usuario, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
     else:
@@ -291,7 +311,8 @@ def busqueda():
     '''
     if request.method == 'POST':
         if int(request.form.get('numero_shots')) > session.get('shots', 0):
-            return apology('¡No tienes suficientes acciones restantes!', 403)
+            flash('¡No tienes suficientes acciones restantes!')
+            return redirect(url_for('busqueda'))
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
         session['perfiles_visitados'] = []
         cuadro_texto = request.form.get('texto_busqueda')
@@ -449,7 +470,6 @@ def descargar():
         for perfil in session['perfiles_visitados']:
             writer.writerow([perfil.nombre, perfil.rol, perfil.url, datetime.now().date(), accion])
     return send_file(ruta, as_attachment=True)
-
 
 
 

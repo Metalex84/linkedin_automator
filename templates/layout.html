@@ -21,7 +21,6 @@
 </head>
 
 <body>
-
     <nav class="bg-light border navbar navbar-expand-md navbar-light">
         <div class="container-fluid">
             <a class="navbar-brand" href="/"><span class="blue">LinkedIn Automator</span></a>
@@ -50,17 +49,20 @@
         </div>
     </nav>
 
-    {% if get_flashed_messages() %}
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
     <header>
         <div class="alert alert-primary mb-0 text-center" role="alert">
             {{ get_flashed_messages() | join(" ") }}
         </div>
     </header>
     {% endif %}
-
+    {% endwith %}
+    
     <main class="container-fluid py-5 text-center">
         {% block main %}{% endblock %}
     </main>
+
 
     <footer class="mb-5 small text-center text-muted">
         <img src="/static/logo_nuevo_horeca 42.png" width="66p">

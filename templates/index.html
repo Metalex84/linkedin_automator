@@ -4,15 +4,6 @@
 Bienvenido
 {% endblock %}
 
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-<header class="alert alert-primary border text-center" role="alert">
-    {{ message }}
-</header>
-{% endif %}
-{% endwith %}
-
-
 {% block main %}
 <h2>Bienvenido a LinkedIn Automator</h2>
 <form action="/login" method="post">

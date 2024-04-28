@@ -60,6 +60,8 @@ def number_of_pages(str_results):
 def check_valid_username(username):
     ''' Funcion que comprueba si el nombre de usuario se ajusta al email corporativo '''
     str = username.split('@')
+    if len(str) != 2:
+        return False
     if str[1] == 'horecarentable.com':
         return True
     else:
@@ -80,30 +82,6 @@ def check_number(number, maximum):
     except ValueError:
         return False
     
-
-
-def apology(message, code=400):
-    ''' Un renderizador de mensajes de error '''
-
-    def escape(s):
-        '''
-        https://github.com/jacebrowning/memegen#special-characters
-        '''
-        for old, new in [
-            ("-", "--"),
-            (" ", "-"),
-            ("_", "__"),
-            ("?", "~q"),
-            ("%", "~p"),
-            ("#", "~h"),
-            ("/", "~s"),
-            ('"', "''"),
-        ]:
-            s = s.replace(old, new)
-        return s
-
-    return render_template("apology.html", top=code, bottom=escape(message)), code
-
 
 
 def login_required(f):

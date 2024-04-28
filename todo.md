@@ -1,4 +1,5 @@
 # TODO: OJO al escribir mensajes, que igual no se puede!!
+# TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'
 # TODO: rellenar y guardar un historial de acciones realizadas
 # TODO: pagina de ayuda
 # TODO: En lugar de mostrar en "busqueda" el username de LinkedIn, recuperar el nombre propio del usuario scrapeando la homepage de LinkedIn
@@ -17,4 +18,3 @@
 ## TODO: extraer todos los XPath a un fichero de configuración (strings.py o algo asi)
 ## TODO: cambiar el renderizador de mensajes de error por uno propio
 ## TODO: ajustar anchura de los cuadros de texto de pedir datos
-## TODO: categorizar y discriminar los mensajes de error
