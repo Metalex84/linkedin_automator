@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Ayuda
+{% endblock %}
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<!-- Incluir Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+{% block main %}
+<h1>Búsqueda en curso</h1>
+<script>
+    setInterval(function() {
+        fetch('/check_status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'finished') {
+                    window.location.href = '/done';
+                }
+            });
+    }, 1000);
+</script>
+
+<div class="spinner-border text-primary" role="status">
+    <span class="sr-only">Por favor, espera...</span>
+</div>
+   
+{% endblock %}
