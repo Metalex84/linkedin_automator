@@ -32,7 +32,6 @@ Session(app)
 
 
 ''' Configuro variables globales'''
-app.config['opcion'] = None
 app.config['driver'] = None
 app.config['texto_mensaje'] = None
 
@@ -53,8 +52,7 @@ def after_request(response):
 def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
-        session['shots'] = user["shots"]
-        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"], connection=user["connection"], shots=session['shots'])
+        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"])
         
     else:
         return render_template('index.html', current_year=datetime.now().year)
@@ -90,14 +88,18 @@ def login():
         # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
         session["user_id"] = user[0]['id']
         session["username"] = user[0]['usuario']
-        session["shots"] = user[0]['shots']
+        session["connection"] = user[0]['connection']
+        session["messages_left"] = user[0]['messages_left']
+        session["connections_left"] = user[0]['connections_left']
+        
 
         # Consulto la ultima fecha de conexion del usuario; si es anterior al dia actual, le reseteo los shots
         ultima_conexion = db.get_connection_by_id(session["user_id"])
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, h.DATE_FORMAT)            
             if last_connect.date() < datetime.now().date():
-                db.set_shots_by_id(h.MAX_SHOTS, session["user_id"])
+                db.set_messages_left_by_id(h.MAX_DAILY_MESSAGES, session["user_id"])
+                db.set_connections_left_by_id(h.MAX_DAILY_CONNECTIONS, session["user_id"])
 
         return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
 
@@ -153,7 +155,7 @@ def register():
             return redirect(url_for('register'))
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            db.insert_user(username, hash, h.MAX_SHOTS)
+            db.insert_user(username, hash, h.MAX_DAILY_CONNECTIONS, h.MAX_DAILY_MESSAGES)
             session["user_id"] = db.get_user_by_name(username)[0]['id']
             return redirect(url_for('acciones'))
     else:
@@ -207,22 +209,19 @@ def acciones():
     1. Recojo la opción seleccionada por el usuario, solo si tiene acciones disponibles restantes
     2. Devuelvo la acción seleccionada en forma de texto
     '''
-    user = db.get_user_by_id(session["user_id"])
-    session['shots'] = user["shots"]
     if request.method == 'POST':
         session['accion'] = ''
-        app.config['opcion'] = request.form.get('opciones')
-        opt = app.config['opcion']
-        if opt == '1':
+        session['opcion'] = request.form.get('opciones')
+        if session.get('opcion') == '1':
             session['accion'] = h.ACTION_VISIT_PROFILES
-        elif opt == '2':
+        elif session.get('opcion') == '2':
             session['accion'] = h.ACTION_WRITE_MESSAGES
             # Recupero el texto del mensaje que deseo enviar
             app.config['texto_mensaje'] = request.form.get('mensaje')
             if not app.config['texto_mensaje']:
                 flash(h.ERR_EMPTY_MESSAGE)
                 return redirect(url_for('acciones'))
-        elif opt == '3':
+        elif session.get('opcion') == '3':
             session['accion'] = h.ACTION_SEND_CONNECTIONS
         return render_template('linklogin.html', current_year=datetime.now().year)
         
@@ -288,12 +287,13 @@ def linklogin():
             # Almaceno credenciales LinkedIn en sesión para sucesivas llamadas solo si el login fue correcto
             session['link_user'] = usuario
             session['link_pass'] = contrasena
+            # Trato de recuperar el nombre propio del usuario; si por lo que sea no lo encuentra, muestro el email
             nombre_propio = ''
             try:
                 nombre_propio = app.config['driver'].find_element(By.XPATH, h.PATH_WELCOME_NAME).text.split(' ')[0]
             except NoSuchElementException:
                 nombre_propio = usuario
-            return render_template('busqueda.html', usuario=nombre_propio, current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
+            return render_template('busqueda.html', usuario=nombre_propio, current_year=datetime.now().year)
     else:
         if session.get('user_id') is not None:
             return render_template('linklogin.html', current_year=datetime.now().year)
@@ -305,8 +305,7 @@ def linklogin():
 @app.route('/viewprofile', methods=['GET'])
 @h.login_required
 def viewprofile():
-    username = db.get_user_by_id(session["user_id"])
-    return render_template('viewprofile.html', current_year=datetime.now().year, username=username["usuario"], connection=username["connection"], shots=username["shots"])
+    return render_template('viewprofile.html', current_year=datetime.now().year)
         
 
 
@@ -318,37 +317,53 @@ def busqueda():
     2. Recupero el texto de busqueda y realizo la busqueda 
     '''
     if request.method == 'POST':   
-        # Si el usuario no especifica cuántos shots quiere gastar, por defecto le doy el máximo de los que dispone
+        # Si el usuario no especifica cuántos shots quiere gastar, por defecto le doy el máximo de los que dispone en cada tipo de accion:
+        cuadro_texto = request.form.get('texto_busqueda')
         numero_shots = request.form.get('numero_shots')
+
         if numero_shots.strip() == '':
-            # TODO: Emitir alerta modal JS para que el usuario se pueda echar atrás, hacerlo desde el lado del cliente
-            numero_shots = int(session.get('shots', 0))
+            if session.get('opcion') == '1':
+                numero_shots = h.UNLIMITED_VISITS
+            elif session.get('opcion') == '2':
+                numero_shots = h.MAX_DAILY_MESSAGES
+            elif session.get('opcion') == '3':
+                numero_shots = h.MAX_DAILY_CONNECTIONS
         else:
             # Valido si el dato introducido está en los límites, es un entero positivo, etc
-            numero_shots = h.check_number(request.form.get('numero_shots'), session.get('shots', 0))
+            if session.get('opcion') == '1':
+                numero_shots = h.check_number(request.form.get('numero_shots'), h.UNLIMITED_VISITS)
+            elif session.get('opcion') == '2':
+                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
+            elif session.get('opcion') == '3':
+                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
             if not numero_shots:
-                flash(h.ERR_NUMERICAL_SHOTS + session.get('shots', 0))
-                # flash(f'¡Introduce un número entero entre 1 y {session.get('shots', 0)}!')
+                if session.get('opcion') == '1':
+                    flash(h.ERR_RANGE_INT)
+                elif session.get('opcion') == '2':
+                    flash(h.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
+                elif session.get('opcion') == '3':
+                    flash(h.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
                 return redirect(url_for('busqueda'))
             
         # Si el número de shots que el usuario pide hacer es mayor que los que tiene disponibles, le devuelvo un mensaje de error
-        if numero_shots > int(session.get('shots', 0)):
+        if session.get('opcion') == '2' and numero_shots > int(session.get('messages_left', 0)):
+            flash(h.ERR_NO_SHOTS_LEFT)
+            return redirect(url_for('busqueda'))
+        elif session.get('opcion') == '3' and numero_shots > int(session.get('connections_left', 0)):
             flash(h.ERR_NO_SHOTS_LEFT)
             return redirect(url_for('busqueda'))
         
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
         session['perfiles_visitados'] = []
-        cuadro_texto = request.form.get('texto_busqueda')
-        opt = app.config['opcion']
 
         # Discrimino profundidad en base a opcion
-        if opt == '1':
+        if session.get('opcion') == '1':
             # Visitar perfiles: a contactos de segundo y tercer grado
             deep = h.DEEP_2_3
-        elif opt == '2':
+        elif session.get('opcion') == '2':
             # Enviar mensajes solo a contactos de primer grado
             deep = h.DEEP_1
-        elif opt == '3':
+        elif session.get('opcion') == '3':
             # Solicitud de conexion: solo a contactos de segundo grado
             deep = h.DEEP_2
 
@@ -421,7 +436,7 @@ def busqueda():
                         h.wait_random_time()
 
                 # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
-                if opt == '3':
+                if session.get('opcion') == '3':
                     # Construyo la lista de botones "Conectar" en cada una de las paginas
                     all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
                     connect_buttons = [btn for btn in all_buttons if btn.text == h.ELEMENT_BUTTON_CONNECT]
@@ -432,7 +447,7 @@ def busqueda():
                         app.config['driver'].execute_script("arguments[0].click();", send)
                         # TODO: conseguir saltar a contactos con mayor nivel de privacidad
 
-                elif opt == '2':
+                elif session.get('opcion') == '2':
                     # TODO: ENVIO DE MENSAJES, no va a ser posible implementarlo asi
                     message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
                     for btn in message_buttons:
@@ -467,21 +482,24 @@ def busqueda():
             
             # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
             
-            if opt == '1':
+            if session.get('opcion') == '1':
                 for person in session['perfiles_visitados']:
                     app.config['driver'].get(person.url)
                     h.wait_random_time()
             
-            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
+            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD salvo si elegí Visitar Perfiles, y muestro resultados
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(session['perfiles_visitados'])
-            db.set_shots_by_id(int(session.get('shots', 0)) - shots_gastados, session["user_id"] )
+            if session.get('opcion') == '2':
+                db.set_messages_left_by_id(int(session.get('messages_left', 0)) - shots_gastados, session["user_id"] )
+            elif session.get('opcion') == '3':
+                db.set_connections_left_by_id(int(session.get('connections_left', 0)) - shots_gastados, session["user_id"] )
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=h.parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
         if session.get('user_id') is not None:
-            return render_template('busqueda.html', usuario=session.get('link_user'), current_year=datetime.now().year, remaining_shots=session.get('shots', 0))
+            return render_template('busqueda.html', usuario=session.get('link_user'), current_year=datetime.now().year)
         else:
             app.config['driver'].quit()
             return render_template('index.html', current_year=datetime.now().year)
@@ -496,11 +514,11 @@ def descargar():
     with open(h.OUTPUT_CSV, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(['Nombre', 'Rol', 'URL', 'Fecha de visita', 'Accion'])
-        if app.config['opcion'] == '1':
+        if session.get('opcion') == '1':
             accion = h.ACTION_PROFILE_VISITED
-        elif app.config['opcion'] == '2':
+        elif session.get('opcion') == '2':
             accion = h.ACTION_MESSAGE_WRITTEN
-        elif app.config['opcion'] == '3':
+        elif session.get('opcion') == '3':
             accion = h.ACTION_CONNECTION_SENT
         for perfil in session['perfiles_visitados']:
             writer.writerow([perfil.nombre, perfil.rol, perfil.url, datetime.now().date(), accion])

@@ -1,4 +1,5 @@
-# TODO: bug mensaje error login al inicio!
+# TODO: BUG mensaje error login al inicio!
+# TODO: BUG condicion parada bucle externo busquedza!
 # TODO: crear TXT con mensajes personalizados aparte del reporte en CSV
 # TODO: control de errores mensaje personalizado (debe llevar [[]])
 # TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'?

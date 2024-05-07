@@ -1,13 +1,13 @@
 import sqlite3 as sql
 
 
-def insert_user(usuario, hash, shots):
+def insert_user(usuario, hash, connections_left, messages_left):
     '''Inserta un usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO usuarios (usuario, password, shots) VALUES (?, ?, ?)""", 
-        (usuario, hash, shots)
+        """INSERT INTO usuarios (usuario, password, connections_left, messages_left) VALUES (?, ?, ?, ?)""", 
+        (usuario, hash, connections_left, messages_left)
         )
     conn.commit()
     conn.close()
@@ -31,7 +31,8 @@ def get_user_by_name(usuario):
             'usuario': u[1],
             'password': u[2],
             'connection': u[3],
-            'shots': u[4]
+            'connections_left': u[4],
+            'messages_left': u[5]
         })
     return users_info
 
@@ -53,7 +54,8 @@ def get_user_by_id(id):
             'usuario': user[1],
             'password': user[2],
             'connection': user[3],
-            'shots': user[4]
+            'connections_left': user[4],
+            'messages_left': user[5]
         }
     else:
         return {
@@ -61,8 +63,21 @@ def get_user_by_id(id):
             'usuario': '',
             'password': '',
             'connection': '',
-            'shots': ''
+            'connections_left': '',
+            'messages_left': ''
         }
+
+
+def set_password_by_id(password, id):
+    '''Fija la contraseña por el id de usuario'''
+    conn = sql.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE usuarios SET password = ? WHERE id = ?""", 
+        (password, id)
+        )
+    conn.commit()
+    conn.close()
 
 
 
@@ -75,7 +90,6 @@ def set_connection_by_id(connection, id):
     last_connection = cursor.fetchone()
     conn.commit()
     conn.close()
-    return last_connection
 
 
 
@@ -96,43 +110,60 @@ def get_connection_by_id(id):
 
 
 
-def set_shots_by_id(shots, id):
-    '''Fija el número de shots restantes por el id de usuario'''
+def set_connections_left_by_id(connections_left, id):
+    '''Fija el número de conexiones restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        """UPDATE usuarios SET shots = ? WHERE id = ?""", 
-        (shots, id)
+        """UPDATE usuarios SET connections_left = ? WHERE id = ?""", 
+        (connections_left, id)
         )
     conn.commit()
     conn.close()
 
 
 
-def set_password_by_id(password, id):
-    '''Fija la contraseña por el id de usuario'''
+def set_messages_left_by_id(messages_left, id):
+    '''Fija el número de mensajes restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        """UPDATE usuarios SET password = ? WHERE id = ?""", 
-        (password, id)
+        """UPDATE usuarios SET messages_left = ? WHERE id = ?""", 
+        (messages_left, id)
         )
     conn.commit()
     conn.close()
 
 
 
-def get_shots_by_id(id):
-    '''Obtiene el número de shots restantes por el id de usuario'''
+def get_messages_left_by_id(id):
+    '''Obtiene el número de mensajes restantes por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT shots FROM usuarios WHERE id = {id}"""
+        f"""SELECT messages_left FROM usuarios WHERE id = {id}"""
         )
-    shots = cursor.fetchall()
+    messages_left = cursor.fetchall()
     conn.commit()
     conn.close()
-    if shots:
-        return shots[0][0]
+    if messages_left:
+        return messages_left[0][0]
+    else:
+        return None
+
+
+
+def get_connections_left_by_id(id):
+    '''Obtiene el número de conexiones restantes por el id de usuario'''
+    conn = sql.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""SELECT connections_left FROM usuarios WHERE id = {id}"""
+        )
+    connections_left = cursor.fetchall()
+    conn.commit()
+    conn.close()
+    if connections_left:
+        return connections_left[0][0]
     else:
         return None

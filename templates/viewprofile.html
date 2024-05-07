@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-Area privada de {{ username }}
+Area privada de {{ session.username }}
 {% endblock %}
 
 {% with messages = get_flashed_messages() %}
@@ -18,9 +18,10 @@ Area privada de {{ username }}
         <h2><u>Información del perfil</u></h2>
     </div>
     <div class="mb-3">
-        <h3>Nombre de usuario: {{ username }}</h3>
-        <h3>Ultima conexion: {{ connection }}</h3>
-        <h3>Shots restantes hoy: {{ shots }}</h3>
+        <h3>Nombre de usuario: {{ session.username }}</h3>
+        <h3>Ultima conexion: {{ session.connection }}</h3>
+        <h3>Mensajes restantes hoy: {{ session.messages_left }}</h3>
+        <h3>Conexiones restantes hoy: {{ session.connections_left }}</h3>
     </div>
     <!-- TODO: implementar esto a medida que la BD tenga más campos-->
 

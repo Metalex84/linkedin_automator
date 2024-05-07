@@ -7,8 +7,9 @@ Filtra tu búsqueda
 {% block main %}
 <div class="container mt-5">
     <h2>Bienvenido, {{ usuario }}</h2>
-    <h3>Te quedan <u>{{ remaining_shots }}</u> acciones disponibles hoy</h3>
-    {% if remaining_shots > 0 %}
+    <h3>Te quedan <u>{{ session.messages_left }}</u> mensajes restantes hoy</h3>
+    <h3>Te quedan <u>{{ session.connections_left }}</u> solicitudes de conexión restantes hoy</h3>
+    {% if session.messages_left > 0 or session.connections_left > 0 %}
     <form action="/busqueda" method="post">
         <div class="mb-3">
             <label for="busqueda">Clave de busqueda</label>
@@ -22,7 +23,7 @@ Filtra tu búsqueda
     </form>
     {% else %}
     <div class="mb-3">
-        <h3><i>Ya no tienes shots disponibles</i></h3>
+        <h3><i>¡No te quedan acciones disponibles!</i></h3>
         <a href="/" class="btn btn-primary">Volver</a>
     </div>
     {% endif %}
