@@ -9,13 +9,13 @@ Crea tu cuenta
 <form action="/register" method="post">
     <div class="mb-3">
         <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username"
-            placeholder="Nombre de usuario" type="text">
+            placeholder="Nombre de usuario" type="text" required>
     </div>
     <div class="mb-3">
-        <input class="form-control mx-auto w-50" name="password" placeholder="Contraseña" type="password">
+        <input class="form-control mx-auto w-50" name="password" placeholder="Contraseña" type="password" required>
     </div>
     <div class="mb-3">
-        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir contraseña" type="password">
+        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir contraseña" type="password" required>
     </div>
     <div class="mb-3">
         <button class="btn btn-primary" type="submit">Crear mi cuenta</button>

@@ -6,16 +6,12 @@ MAX_WEEKLY_CONNECTIONS = 100
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-ERR_NO_USERNAME = "¡Introduce tu nombre de usuario!"
-ERR_NO_PASSWORD = "¡Introduce tu contraseña!"
-ERR_NO_NEW_PASSWORD = "¡Introduce tu nueva contraseña!"
-ERR_NO_CONFIRM_PASSWORD = "¡Confirma tu nueva contraseña!"
 ERR_USER_OR_PASS_WRONG = "¡Usuario o contraseña incorrectos!"
 ERR_USER_ALREADY_EXISTS = "¡Este nombre de usuario ya existe!"
-ERR_CONFIRM_PASSWORD = "¡Confirma tu contraseña!"
 ERR_PASSWORDS_NOT_MATCH = "¡Las contraseñas no coinciden!"
 ERR_CORPORATE_EMAIL = "¡Utiliza tu correo corporativo como nombre de usuario!"
 ERR_EMPTY_MESSAGE = "¡Introduce un mensaje!"
+ERR_WRONG_MESSAGE = "No has introducido la secuencia de escape '----' en el mensaje"
 ERR_NO_LINKEDIN_USER = "¡Introduce un nombre de usuario de LinkedIn!"
 ERR_NO_LINKEDIN_PASS = "¡Introduce una contraseña de LinkedIn!"
 ERR_LINKEDIN_LOGIN_WRONG = "¡Usuario o contraseña de LinkedIn incorrectos!"

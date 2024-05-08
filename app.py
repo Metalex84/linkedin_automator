@@ -71,20 +71,13 @@ def login():
 
     session.clear()
 
-    # TODO: aquí no consigo que estos mensajes de error se muestren en la página de login... por qué?????
     if request.method == 'POST':
-        if not request.form.get('username'):
-            flash(l.ERR_NO_USERNAME)
-            return redirect(url_for('login'))
-        elif not request.form.get('password'):
-            flash(l.ERR_NO_PASSWORD)
-            return redirect(url_for('login'))
-        
+
         user = db.get_user_by_name(request.form.get('username'))
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             flash(l.ERR_USER_OR_PASS_WRONG)
-            return redirect(url_for('login'))
+            return render_template('index.html', current_year=datetime.now().year)
 
         # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
         session["user_id"] = user[0]['id']
@@ -144,17 +137,8 @@ def register():
 
         cursor = db.get_user_by_name(username)
 
-        if not username:
-            flash(l.ERR_NO_USERNAME)
-            return redirect(url_for('register'))
-        elif len(cursor) != 0:
+        if len(cursor) != 0:
             flash(l.ERR_USER_ALREADY_EXISTS)
-            return redirect(url_for('register'))
-        elif not password:
-            flash(l.ERR_NO_PASSWORD)
-            return redirect(url_for('register'))
-        elif not confirmation:
-            flash(l.ERR_CONFIRM_PASSWORD)
             return redirect(url_for('register'))
         elif password != confirmation:
             flash(l.ERR_PASSWORDS_NOT_MATCH)
@@ -187,16 +171,7 @@ def reset():
         password = request.form.get('password')
         confirmation = request.form.get('confirmation')
 
-        if not username:
-            flash(l.ERR_NO_USERNAME)
-            return redirect(url_for('reset'))
-        elif not password:
-            flash(l.ERR_NO_NEW_PASSWORD)
-            return redirect(url_for('reset'))
-        elif not confirmation:
-            flash(l.ERR_NO_CONFIRM_PASSWORD)
-            return redirect(url_for('reset'))
-        elif password != confirmation:
+        if password != confirmation:
             flash(l.ERR_PASSWORDS_NOT_MATCH)
             return redirect(url_for('reset'))
         else:
@@ -228,9 +203,15 @@ def acciones():
             session['accion'] = l.ACTION_WRITE_MESSAGES
             # Recupero el texto del mensaje que deseo enviar
             app.config['texto_mensaje'] = request.form.get('mensaje')
+            # Si el campo de texto está vacío, no puedo enviar ningún mensaje
             if not app.config['texto_mensaje']:
                 flash(l.ERR_EMPTY_MESSAGE)
                 return redirect(url_for('acciones'))
+            # Si la cadena no contiene la secuencia de escape, el mensaje no se puede personalizar
+            elif '----' not in app.config['texto_mensaje']:
+                flash(l.ERR_WRONG_MESSAGE)
+                return redirect(url_for('acciones'))
+            
         elif session.get('opcion') == '3':
             session['accion'] = l.ACTION_SEND_CONNECTIONS
         return render_template('linklogin.html', current_year=datetime.now().year)
@@ -461,16 +442,19 @@ def busqueda():
                 elif session.get('opcion') == '2':
                     # TODO: ENVIO DE MENSAJES, no va a ser posible implementarlo asi
                     message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
+
                     for btn in message_buttons:
                         # Click en el boton de mandar el mensaje y esperar un poco
                         app.config['driver'].execute_script("arguments[0].click();", btn)
                         h.wait_random_time()
                         # Conseguir el nombre del destinatario y personalizar el mensaje
                         name = btn.get_attribute('aria-label').split(' ')[3]
-                        custom_message = app.config['texto_mensaje'].replace('[[]]', name)
+                        custom_message = app.config['texto_mensaje'].replace('----', name)
+
                         # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
                         app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
                         textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                        
                         # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
                         # textfields[-6].clear()
                         # textfields[-5].clear()

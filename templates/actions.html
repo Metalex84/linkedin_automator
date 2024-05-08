@@ -1,11 +1,6 @@
 {% extends "layout.html" %}
 
 {% block title %}
-<style>
-    #speech {
-        display: none;
-    }
-</style>
 Bienvenido, {{ username }}
 {% endblock %}
 
@@ -34,10 +29,10 @@ Bienvenido, {{ username }}
             </div>
             <!-- Esto se muestra si el usuario va a escribir mensajes o a solicitar conexion -->
             <div class="container text-center mb-5" id="speech" name="speech">
-                <label for="mensaje" class="form-control font-weight-bold">Escribe un mensaje para tus contactos. <i>En
-                        el lugar del nombre, escribe [[]]</i></label>
+                <label for="mensaje" class="form-control font-weight-bold">Escribe un mensaje para tus contactos.
+                    <i>Escribe el nombre entre la secuencia "----"</i></label>
                 <textarea class="form-control form-control-lg" id="mensaje" name="mensaje" type="text" rows=10 cols=50
-                    placeholder="Hola [[]], ...(tu mensaje)..."></textarea>
+                    placeholder="Hola ----, ...(tu mensaje)..."></textarea>
             </div>
             <div class="form-check form-check-inline">
                 <button class="btn btn-primary" type="submit">Continuar</button>

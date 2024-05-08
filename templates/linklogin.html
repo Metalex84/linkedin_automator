@@ -4,14 +4,6 @@
 Conectate a LinkedIn
 {% endblock %}
 
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-<header class="alert alert-primary border text-center" role="alert">
-    {{ message }}
-</header>
-{% endif %}
-{% endwith %}
-
 
 {% block main %}
 {% if not session.link_user or not session.link_pass %}

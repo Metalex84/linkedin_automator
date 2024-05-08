@@ -1,6 +1,4 @@
-# TODO: BUG mensaje error login al inicio!
 # TODO: crear TXT con mensajes personalizados aparte del reporte en CSV
-# TODO: control de errores mensaje personalizado (debe llevar [[]])
 # TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'?
 # TODO: configurar webdriver remoto?
 # TODO: rellenar y guardar un historial de acciones realizadas

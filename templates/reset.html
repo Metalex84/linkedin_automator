@@ -8,14 +8,16 @@ Restablece tu contraseña
 <h2>Restablece tu contraseña</h2>
 <form action="/reset" method="post">
     <div class="mb-3">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username"
-            placeholder="eMail" type="text">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-50" name="username" placeholder="eMail"
+            type="text" required>
     </div>
     <div class="mb-3">
-        <input class="form-control mx-auto w-50" name="password" placeholder="Nueva contraseña" type="password">
+        <input class="form-control mx-auto w-50" name="password" placeholder="Nueva contraseña" type="password"
+            required>
     </div>
     <div class="mb-3">
-        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir nueva contraseña" type="password">
+        <input class="form-control mx-auto w-50" name="confirmation" placeholder="Repetir nueva contraseña"
+            type="password" required>
     </div>
     <div class="mb-3">
         <button class="btn btn-primary" type="submit">Restablecer contraseña</button>
