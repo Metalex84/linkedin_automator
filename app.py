@@ -9,8 +9,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from datetime import datetime
-import secrets
+from datetime import datetime, date
 import time
 import csv
 
@@ -20,7 +19,7 @@ import model as db
 
 ''' Configuro la aplicacion Flask y la clave secreta '''
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
+app.secret_key = "Secret_Key_LinkedinAutomator_Alex"
 
 
 
@@ -56,7 +55,7 @@ def index():
         
     else:
         return render_template('index.html', current_year=datetime.now().year)
-
+    
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -71,19 +70,20 @@ def login():
 
     session.clear()
 
+    # TODO: aquí no consigo que estos mensajes de error se muestren en la página de login... por qué?????
     if request.method == 'POST':
         if not request.form.get('username'):
             flash(h.ERR_NO_USERNAME)
-            return redirect(url_for('index'))
+            return redirect(url_for('login'))
         elif not request.form.get('password'):
             flash(h.ERR_NO_PASSWORD)
-            return redirect(url_for('index'))
+            return redirect(url_for('login'))
         
         user = db.get_user_by_name(request.form.get('username'))
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             flash(h.ERR_USER_OR_PASS_WRONG)
-            return redirect(url_for('index'))
+            return redirect(url_for('login'))
 
         # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
         session["user_id"] = user[0]['id']
@@ -91,15 +91,23 @@ def login():
         session["connection"] = user[0]['connection']
         session["messages_left"] = user[0]['messages_left']
         session["connections_left"] = user[0]['connections_left']
+        session["visits_left"] = user[0]['visits_left']
         
 
-        # Consulto la ultima fecha de conexion del usuario; si es anterior al dia actual, le reseteo los shots
-        ultima_conexion = db.get_connection_by_id(session["user_id"])
+        # Consulto la ultima fecha de conexion del usuario
+        ultima_conexion = db.get_last_connection_by_id(session["user_id"])
+        # Hago esta comprobación para evitar errores en la primera conexión
         if ultima_conexion is not None:
             last_connect = datetime.strptime(ultima_conexion, h.DATE_FORMAT)            
+            # Si ha pasado más de un día, reseteo los mensajes disponibles
             if last_connect.date() < datetime.now().date():
                 db.set_messages_left_by_id(h.MAX_DAILY_MESSAGES, session["user_id"])
-                db.set_connections_left_by_id(h.MAX_DAILY_CONNECTIONS, session["user_id"])
+            # Si ha pasado más de un mes, reseteo las visitas disponibles
+            if last_connect.month < datetime.now().month:
+                db.set_visits_left_by_id(h.MAX_MONTHLY_VISITS, session["user_id"])
+            # Si ha pasado más de una semana, reseteo las conexiones disponibles
+            if last_connect.isocalendar()[1] < datetime.now().isocalendar()[1]:
+                db.set_connections_left_by_id(h.MAX_WEEKLY_CONNECTIONS, session["user_id"])
 
         return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
 
@@ -113,7 +121,7 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-    db.set_connection_by_id(datetime.now().strftime(h.DATE_FORMAT), session["user_id"])
+    db.set_last_connection_by_id(datetime.now().strftime(h.DATE_FORMAT), session["user_id"])
     session.clear()
     return redirect(url_for('index'))
 
@@ -155,7 +163,8 @@ def register():
             return redirect(url_for('register'))
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            db.insert_user(username, hash, h.MAX_DAILY_CONNECTIONS, h.MAX_DAILY_MESSAGES)
+            db.insert_user(username, hash, h.MAX_WEEKLY_CONNECTIONS, h.MAX_DAILY_MESSAGES, h.MAX_MONTHLY_VISITS)
+            # TODO: con esto, el usuario se loguea automáticamente tras registrarse?
             session["user_id"] = db.get_user_by_name(username)[0]['id']
             return redirect(url_for('acciones'))
     else:
@@ -323,15 +332,15 @@ def busqueda():
 
         if numero_shots.strip() == '':
             if session.get('opcion') == '1':
-                numero_shots = h.UNLIMITED_VISITS
+                numero_shots = h.MAX_MONTHLY_VISITS
             elif session.get('opcion') == '2':
                 numero_shots = h.MAX_DAILY_MESSAGES
             elif session.get('opcion') == '3':
-                numero_shots = h.MAX_DAILY_CONNECTIONS
+                numero_shots = h.MAX_WEEKLY_CONNECTIONS
         else:
             # Valido si el dato introducido está en los límites, es un entero positivo, etc
             if session.get('opcion') == '1':
-                numero_shots = h.check_number(request.form.get('numero_shots'), h.UNLIMITED_VISITS)
+                numero_shots = h.check_number(request.form.get('numero_shots'), h.MAX_MONTHLY_VISITS)
             elif session.get('opcion') == '2':
                 numero_shots = h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
             elif session.get('opcion') == '3':
@@ -389,13 +398,18 @@ def busqueda():
             str_results = app.config['driver'].find_element(By.XPATH, h.PATH_NUMBER_RESULTS)
             num_pags = h.number_of_pages(str_results)
             # Acoto a 100 el numero maximo de paginas a visitar por seguridad
-            if num_pags >= int(h.MAX_RESULT_PAGES):
-                num_pags = int(h.MAX_RESULT_PAGES)
-        
+            if num_pags > h.MAX_RESULT_PAGES:
+                num_pags = h.MAX_RESULT_PAGES
+
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
-            # El bucle externo se detiene si se han visitado todos los perfiles, si se ha alcanzado el tope de shots definido, o hasta la página 100
-            while (pagina <= num_pags and len(session['perfiles_visitados']) < numero_shots):  
+            # El bucle externo se detiene en la última página o si se ha alcanzado el tope de shots definido
+            while (pagina <= num_pags and len(session['perfiles_visitados']) < numero_shots):
+                # DEBUG
+                print(f"La longitud de la lista ahora es: {len(session['perfiles_visitados'])}")
+                print("Estoy en la pagina: ", pagina)
+                #
+
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(h.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
                 
@@ -481,20 +495,25 @@ def busqueda():
                 pagina += 1
             
             # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
-            
+            '''
             if session.get('opcion') == '1':
                 for person in session['perfiles_visitados']:
                     app.config['driver'].get(person.url)
                     h.wait_random_time()
-            
-            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD salvo si elegí Visitar Perfiles, y muestro resultados
+            '''
+            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
             end = time.time()
             app.config['driver'].quit()
             shots_gastados = len(session['perfiles_visitados'])
-            if session.get('opcion') == '2':
-                db.set_messages_left_by_id(int(session.get('messages_left', 0)) - shots_gastados, session["user_id"] )
+            if session.get('opcion') == '1':
+                session['visits_left'] = int(session.get('visits_left', 0)) - shots_gastados
+                db.set_visits_left_by_id(int(session.get('visits_left', 0)), session["user_id"] )
+            elif session.get('opcion') == '2':
+                session['messages_left'] = int(session.get('messages_left', 0)) - shots_gastados
+                db.set_messages_left_by_id(int(session.get('messages_left', 0)), session["user_id"] )
             elif session.get('opcion') == '3':
-                db.set_connections_left_by_id(int(session.get('connections_left', 0)) - shots_gastados, session["user_id"] )
+                session['connections_left'] = int(session.get('connections_left', 0)) - shots_gastados
+                db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=h.parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:

@@ -1,13 +1,13 @@
 import sqlite3 as sql
 
 
-def insert_user(usuario, hash, connections_left, messages_left):
+def insert_user(usuario, hash, connections_left, messages_left, visits_left):
     '''Inserta un usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO usuarios (usuario, password, connections_left, messages_left) VALUES (?, ?, ?, ?)""", 
-        (usuario, hash, connections_left, messages_left)
+        """INSERT INTO usuarios (usuario, password, connections_left, messages_left, visits_left) VALUES (?, ?, ?, ?, ?)""", 
+        (usuario, hash, connections_left, messages_left, visits_left)
         )
     conn.commit()
     conn.close()
@@ -32,7 +32,8 @@ def get_user_by_name(usuario):
             'password': u[2],
             'connection': u[3],
             'connections_left': u[4],
-            'messages_left': u[5]
+            'messages_left': u[5],
+            'visits_left': u[6]
         })
     return users_info
 
@@ -55,7 +56,8 @@ def get_user_by_id(id):
             'password': user[2],
             'connection': user[3],
             'connections_left': user[4],
-            'messages_left': user[5]
+            'messages_left': user[5],
+            'visits_left': user[6]
         }
     else:
         return {
@@ -64,7 +66,8 @@ def get_user_by_id(id):
             'password': '',
             'connection': '',
             'connections_left': '',
-            'messages_left': ''
+            'messages_left': '',
+            'visits_left': ''
         }
 
 
@@ -81,30 +84,30 @@ def set_password_by_id(password, id):
 
 
 
-def set_connection_by_id(connection, id):
+def set_last_connection_by_id(last_connection, id):
     '''Fija la ultima fecha y hora de conexión por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
-    cursor.execute("""UPDATE usuarios SET connection = ? WHERE id = ?""",
-                   (connection, id))
+    cursor.execute("""UPDATE usuarios SET last_connection = ? WHERE id = ?""",
+                   (last_connection, id))
     last_connection = cursor.fetchone()
     conn.commit()
     conn.close()
 
 
 
-def get_connection_by_id(id):
+def get_last_connection_by_id(id):
     '''Obtiene la última fecha y hora de conexión por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT connection FROM usuarios WHERE id = {id}"""
+        f"""SELECT last_connection FROM usuarios WHERE id = {id}"""
         )
-    connection = cursor.fetchone()
+    last_connection = cursor.fetchone()
     conn.commit()
     conn.close()
-    if connection:
-        return connection[0]
+    if last_connection:
+        return last_connection[0]
     else:
         return None
 
@@ -130,6 +133,19 @@ def set_messages_left_by_id(messages_left, id):
     cursor.execute(
         """UPDATE usuarios SET messages_left = ? WHERE id = ?""", 
         (messages_left, id)
+        )
+    conn.commit()
+    conn.close()
+
+
+
+def set_visits_left_by_id(visits_left, id):
+    '''Fija el número de visitas restantes por el id de usuario'''
+    conn = sql.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE usuarios SET visits_left = ? WHERE id = ?""", 
+        (visits_left, id)
         )
     conn.commit()
     conn.close()
@@ -165,5 +181,22 @@ def get_connections_left_by_id(id):
     conn.close()
     if connections_left:
         return connections_left[0][0]
+    else:
+        return None
+    
+
+
+def get_visits_left_by_id(id):
+    '''Obtiene el número de visitas restantes por el id de usuario'''
+    conn = sql.connect('linkedin.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""SELECT visits_left FROM usuarios WHERE id = {id}"""
+        )
+    visits_left = cursor.fetchall()
+    conn.commit()
+    conn.close()
+    if visits_left:
+        return visits_left[0][0]
     else:
         return None

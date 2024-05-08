@@ -5,13 +5,13 @@ from urllib.parse import urlparse
 import random
 import time
 import math
-import sys
 
 
 MAX_RESULT_PAGES = 100
-MAX_DAILY_CONNECTIONS = 20
+
+MAX_MONTHLY_VISITS = 100
 MAX_DAILY_MESSAGES = 100
-UNLIMITED_VISITS = sys.maxsize
+MAX_WEEKLY_CONNECTIONS = 100
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
