@@ -15,7 +15,7 @@ def insert_user(usuario, hash, connections_left, messages_left, visits_left):
 
 
 def get_user_by_name(usuario):
-    '''Obtiene un usuario por su nombre'''
+    '''Devuelve todos los datos de un usuario por su nombre'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(

@@ -10,7 +10,7 @@ Resultados
 <h3><i>Accion completada sobre {{ numero_perfiles }} perfiles</i></h3>
 <div class="container">
     <ol>
-        {% for profile in profiles %}
+        {% for profile in session.perfiles_visitados %}
         <li><a href="{{ profile.url }}" target="_blank">{{ profile.nombre }}, {{ profile.rol }}</a></li>
         {% endfor %}
     </ol>

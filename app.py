@@ -136,21 +136,27 @@ def register():
         confirmation = request.form.get('confirmation')
 
         cursor = db.get_user_by_name(username)
-
         if len(cursor) != 0:
             flash(l.ERR_USER_ALREADY_EXISTS)
             return redirect(url_for('register'))
         elif password != confirmation:
             flash(l.ERR_PASSWORDS_NOT_MATCH)
             return redirect(url_for('register'))
-        elif not l.check_valid_username(username):
+        elif not h.check_valid_username(username):
             flash(l.ERR_CORPORATE_EMAIL)
             return redirect(url_for('register'))
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.insert_user(username, hash, l.MAX_WEEKLY_CONNECTIONS, l.MAX_DAILY_MESSAGES, l.MAX_MONTHLY_VISITS)
-            # TODO: con esto, el usuario se loguea automáticamente tras registrarse?
-            session["user_id"] = db.get_user_by_name(username)[0]['id']
+            userdata = db.get_user_by_name(username)
+            session["user_id"] = userdata[0]['id']
+            db.set_last_connection_by_id(datetime.now().strftime(l.DATE_FORMAT), session["user_id"])
+            session["username"] = userdata[0]['usuario']
+            session["connection"] = userdata[0]['connection']
+            session["messages_left"] = userdata[0]['messages_left']
+            session["connections_left"] = userdata[0]['connections_left']
+            session["visits_left"] = userdata[0]['visits_left']
+
             return redirect(url_for('acciones'))
     else:
         return render_template('register.html', current_year=datetime.now().year)
@@ -495,7 +501,7 @@ def busqueda():
             elif session.get('opcion') == '3':
                 session['connections_left'] = int(session.get('connections_left', 0)) - shots_gastados
                 db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
-            return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo=h.parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
+            return render_template("done.html", current_year=datetime.now().year, tiempo=h.parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
 
     else:
         if session.get('user_id') is not None:

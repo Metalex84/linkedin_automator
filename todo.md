@@ -1,10 +1,11 @@
+# TODO: bug mientras construye lista de perfiles: podria colarse un elemento entre medias que jode la lista!
 # TODO: hilo asíncrono en busqueda
+# TODO: verificar reseteos de shots según tratamiento fechas
 # TODO: crear TXT con mensajes personalizados aparte del reporte en CSV
 # TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'?
 # TODO: configurar webdriver remoto?
 # TODO: rellenar y guardar un historial de acciones realizadas
-# TODO: pagina de ayuda. Advertir de los límites
-# TODO: PERFIL Y VISTA DE ADMINISTRADOR
+# TODO: pagina de ayuda. Advertir de los límites, y de que cada usuario utilice solo una cuenta de LinkedIn para no desvirtuar los limites.
 # TODO: estilar y poner bonito el front
 
 
