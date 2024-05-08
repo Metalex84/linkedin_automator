@@ -14,6 +14,7 @@ import time
 import csv
 
 import helpers as h
+import literals as l
 import model as db
 
 
@@ -73,16 +74,16 @@ def login():
     # TODO: aquí no consigo que estos mensajes de error se muestren en la página de login... por qué?????
     if request.method == 'POST':
         if not request.form.get('username'):
-            flash(h.ERR_NO_USERNAME)
+            flash(l.ERR_NO_USERNAME)
             return redirect(url_for('login'))
         elif not request.form.get('password'):
-            flash(h.ERR_NO_PASSWORD)
+            flash(l.ERR_NO_PASSWORD)
             return redirect(url_for('login'))
         
         user = db.get_user_by_name(request.form.get('username'))
 
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
-            flash(h.ERR_USER_OR_PASS_WRONG)
+            flash(l.ERR_USER_OR_PASS_WRONG)
             return redirect(url_for('login'))
 
         # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
@@ -98,16 +99,16 @@ def login():
         ultima_conexion = db.get_last_connection_by_id(session["user_id"])
         # Hago esta comprobación para evitar errores en la primera conexión
         if ultima_conexion is not None:
-            last_connect = datetime.strptime(ultima_conexion, h.DATE_FORMAT)            
+            last_connect = datetime.strptime(ultima_conexion, l.DATE_FORMAT)            
             # Si ha pasado más de un día, reseteo los mensajes disponibles
             if last_connect.date() < datetime.now().date():
-                db.set_messages_left_by_id(h.MAX_DAILY_MESSAGES, session["user_id"])
+                db.set_messages_left_by_id(l.MAX_DAILY_MESSAGES, session["user_id"])
             # Si ha pasado más de un mes, reseteo las visitas disponibles
             if last_connect.month < datetime.now().month:
-                db.set_visits_left_by_id(h.MAX_MONTHLY_VISITS, session["user_id"])
+                db.set_visits_left_by_id(l.MAX_MONTHLY_VISITS, session["user_id"])
             # Si ha pasado más de una semana, reseteo las conexiones disponibles
             if last_connect.isocalendar()[1] < datetime.now().isocalendar()[1]:
-                db.set_connections_left_by_id(h.MAX_WEEKLY_CONNECTIONS, session["user_id"])
+                db.set_connections_left_by_id(l.MAX_WEEKLY_CONNECTIONS, session["user_id"])
 
         return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
 
@@ -121,7 +122,7 @@ def logout():
     '''
     Cierro la sesion del usuario guardando la fecha y hora de la ultima conexion
     '''
-    db.set_last_connection_by_id(datetime.now().strftime(h.DATE_FORMAT), session["user_id"])
+    db.set_last_connection_by_id(datetime.now().strftime(l.DATE_FORMAT), session["user_id"])
     session.clear()
     return redirect(url_for('index'))
 
@@ -144,26 +145,26 @@ def register():
         cursor = db.get_user_by_name(username)
 
         if not username:
-            flash(h.ERR_NO_USERNAME)
+            flash(l.ERR_NO_USERNAME)
             return redirect(url_for('register'))
         elif len(cursor) != 0:
-            flash(h.ERR_USER_ALREADY_EXISTS)
+            flash(l.ERR_USER_ALREADY_EXISTS)
             return redirect(url_for('register'))
         elif not password:
-            flash(h.ERR_NO_PASSWORD)
+            flash(l.ERR_NO_PASSWORD)
             return redirect(url_for('register'))
         elif not confirmation:
-            flash(h.ERR_CONFIRM_PASSWORD)
+            flash(l.ERR_CONFIRM_PASSWORD)
             return redirect(url_for('register'))
         elif password != confirmation:
-            flash(h.ERR_PASSWORDS_NOT_MATCH)
+            flash(l.ERR_PASSWORDS_NOT_MATCH)
             return redirect(url_for('register'))
-        elif not h.check_valid_username(username):
-            flash(h.ERR_CORPORATE_EMAIL)
+        elif not l.check_valid_username(username):
+            flash(l.ERR_CORPORATE_EMAIL)
             return redirect(url_for('register'))
         else:
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
-            db.insert_user(username, hash, h.MAX_WEEKLY_CONNECTIONS, h.MAX_DAILY_MESSAGES, h.MAX_MONTHLY_VISITS)
+            db.insert_user(username, hash, l.MAX_WEEKLY_CONNECTIONS, l.MAX_DAILY_MESSAGES, l.MAX_MONTHLY_VISITS)
             # TODO: con esto, el usuario se loguea automáticamente tras registrarse?
             session["user_id"] = db.get_user_by_name(username)[0]['id']
             return redirect(url_for('acciones'))
@@ -187,21 +188,21 @@ def reset():
         confirmation = request.form.get('confirmation')
 
         if not username:
-            flash(h.ERR_NO_USERNAME)
+            flash(l.ERR_NO_USERNAME)
             return redirect(url_for('reset'))
         elif not password:
-            flash(h.ERR_NO_NEW_PASSWORD)
+            flash(l.ERR_NO_NEW_PASSWORD)
             return redirect(url_for('reset'))
         elif not confirmation:
-            flash(h.ERR_NO_CONFIRM_PASSWORD)
+            flash(l.ERR_NO_CONFIRM_PASSWORD)
             return redirect(url_for('reset'))
         elif password != confirmation:
-            flash(h.ERR_PASSWORDS_NOT_MATCH)
+            flash(l.ERR_PASSWORDS_NOT_MATCH)
             return redirect(url_for('reset'))
         else:
             user = db.get_user_by_name(username)
             if len(user) != 1:
-                flash(h.ERR_USER_ALREADY_EXISTS)
+                flash(l.ERR_USER_ALREADY_EXISTS)
                 return redirect(url_for('reset'))
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.set_password_by_id(hash, user[0]['id'])
@@ -222,16 +223,16 @@ def acciones():
         session['accion'] = ''
         session['opcion'] = request.form.get('opciones')
         if session.get('opcion') == '1':
-            session['accion'] = h.ACTION_VISIT_PROFILES
+            session['accion'] = l.ACTION_VISIT_PROFILES
         elif session.get('opcion') == '2':
-            session['accion'] = h.ACTION_WRITE_MESSAGES
+            session['accion'] = l.ACTION_WRITE_MESSAGES
             # Recupero el texto del mensaje que deseo enviar
             app.config['texto_mensaje'] = request.form.get('mensaje')
             if not app.config['texto_mensaje']:
-                flash(h.ERR_EMPTY_MESSAGE)
+                flash(l.ERR_EMPTY_MESSAGE)
                 return redirect(url_for('acciones'))
         elif session.get('opcion') == '3':
-            session['accion'] = h.ACTION_SEND_CONNECTIONS
+            session['accion'] = l.ACTION_SEND_CONNECTIONS
         return render_template('linklogin.html', current_year=datetime.now().year)
         
     else:
@@ -263,10 +264,10 @@ def linklogin():
             contrasena = request.form.get('password')
 
             if not usuario:
-                flash(h.ERR_NO_LINKEDIN_USER)
+                flash(l.ERR_NO_LINKEDIN_USER)
                 return redirect(url_for('linklogin'))
             elif not contrasena:
-                flash(h.ERR_NO_LINKEDIN_PASS)
+                flash(l.ERR_NO_LINKEDIN_PASS)
                 return redirect(url_for('linklogin'))
         else:
             usuario = session.get('link_user')
@@ -279,17 +280,17 @@ def linklogin():
         
         # app.config['driver'] =  webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', options=webdriver.FirefoxOptions())
         app.config['driver'] = webdriver.Firefox()
-        app.config['driver'].get(h.URL_LINKEDIN_HOME)
-        username = app.config['driver'].find_element(By.XPATH, h.ELEMENT_SESSION_KEY)
-        password = app.config['driver'].find_element(By.XPATH, h.ELEMENT_SESSION_PASSWORD)
+        app.config['driver'].get(l.URL_LINKEDIN_HOME)
+        username = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_KEY)
+        password = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_PASSWORD)
         username.send_keys(usuario)
         password.send_keys(contrasena)
-        app.config['driver'].find_element(By.XPATH, h.ELEMENT_BUTTON_SUBMIT).click()
+        app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SUBMIT).click()
         h.wait_random_time()
 
         # Si la URL a la que llego es la de inicio o la de nuevamente introducir login, es que las credenciales no son correctas
-        if app.config['driver'].current_url == h.URL_LINKEDIN_LOGIN or app.config['driver'].current_url == h.URL_LINKEDIN_HOME:
-            flash(h.ERR_LINKEDIN_LOGIN_WRONG)
+        if app.config['driver'].current_url == l.URL_LINKEDIN_LOGIN or app.config['driver'].current_url == l.URL_LINKEDIN_HOME:
+            flash(l.ERR_LINKEDIN_LOGIN_WRONG)
             app.config['driver'].quit()
             return redirect(url_for('linklogin'))
         else:
@@ -299,7 +300,7 @@ def linklogin():
             # Trato de recuperar el nombre propio del usuario; si por lo que sea no lo encuentra, muestro el email
             nombre_propio = ''
             try:
-                nombre_propio = app.config['driver'].find_element(By.XPATH, h.PATH_WELCOME_NAME).text.split(' ')[0]
+                nombre_propio = app.config['driver'].find_element(By.XPATH, l.PATH_WELCOME_NAME).text.split(' ')[0]
             except NoSuchElementException:
                 nombre_propio = usuario
             return render_template('busqueda.html', usuario=nombre_propio, current_year=datetime.now().year)
@@ -332,34 +333,34 @@ def busqueda():
 
         if numero_shots.strip() == '':
             if session.get('opcion') == '1':
-                numero_shots = h.MAX_MONTHLY_VISITS
+                numero_shots = l.MAX_MONTHLY_VISITS
             elif session.get('opcion') == '2':
-                numero_shots = h.MAX_DAILY_MESSAGES
+                numero_shots = l.MAX_DAILY_MESSAGES
             elif session.get('opcion') == '3':
-                numero_shots = h.MAX_WEEKLY_CONNECTIONS
+                numero_shots = l.MAX_WEEKLY_CONNECTIONS
         else:
             # Valido si el dato introducido está en los límites, es un entero positivo, etc
             if session.get('opcion') == '1':
-                numero_shots = h.check_number(request.form.get('numero_shots'), h.MAX_MONTHLY_VISITS)
+                numero_shots = h.check_number(request.form.get('numero_shots'), l.MAX_MONTHLY_VISITS)
             elif session.get('opcion') == '2':
                 numero_shots = h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
             elif session.get('opcion') == '3':
                 numero_shots = h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
             if not numero_shots:
                 if session.get('opcion') == '1':
-                    flash(h.ERR_RANGE_INT)
+                    flash(l.ERR_RANGE_INT)
                 elif session.get('opcion') == '2':
-                    flash(h.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
+                    flash(l.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
                 elif session.get('opcion') == '3':
-                    flash(h.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
+                    flash(l.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
                 return redirect(url_for('busqueda'))
             
         # Si el número de shots que el usuario pide hacer es mayor que los que tiene disponibles, le devuelvo un mensaje de error
         if session.get('opcion') == '2' and numero_shots > int(session.get('messages_left', 0)):
-            flash(h.ERR_NO_SHOTS_LEFT)
+            flash(l.ERR_NO_SHOTS_LEFT)
             return redirect(url_for('busqueda'))
         elif session.get('opcion') == '3' and numero_shots > int(session.get('connections_left', 0)):
-            flash(h.ERR_NO_SHOTS_LEFT)
+            flash(l.ERR_NO_SHOTS_LEFT)
             return redirect(url_for('busqueda'))
         
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
@@ -368,16 +369,16 @@ def busqueda():
         # Discrimino profundidad en base a opcion
         if session.get('opcion') == '1':
             # Visitar perfiles: a contactos de segundo y tercer grado
-            deep = h.DEEP_2_3
+            deep = l.DEEP_2_3
         elif session.get('opcion') == '2':
             # Enviar mensajes solo a contactos de primer grado
-            deep = h.DEEP_1
+            deep = l.DEEP_1
         elif session.get('opcion') == '3':
             # Solicitud de conexion: solo a contactos de segundo grado
-            deep = h.DEEP_2
+            deep = l.DEEP_2
 
         # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles
-        app.config['driver'].get(h.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
+        app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
         
         # DEBUG: solo para buscar empresas concretas
         # app.config['driver'].get("https://www.linkedin.com/search/results/companies/?companyHqGeo=%5B%22105646813%22%5D&keywords=logistica&origin=FACETED_SEARCH&sid=Yo-")
@@ -391,27 +392,23 @@ def busqueda():
 
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
-            app.config['driver'].find_element(By.XPATH, h.ELEMENT_EMPTY_STATE)
+            app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
             return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
             # Obtengo cantidad de resultados y calculo numero de paginas
-            str_results = app.config['driver'].find_element(By.XPATH, h.PATH_NUMBER_RESULTS)
+            str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
             num_pags = h.number_of_pages(str_results)
             # Acoto a 100 el numero maximo de paginas a visitar por seguridad
-            if num_pags > h.MAX_RESULT_PAGES:
-                num_pags = h.MAX_RESULT_PAGES
+            if num_pags > l.MAX_RESULT_PAGES:
+                num_pags = l.MAX_RESULT_PAGES
 
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
             # El bucle externo se detiene en la última página o si se ha alcanzado el tope de shots definido
             while (pagina <= num_pags and len(session['perfiles_visitados']) < numero_shots):
-                # DEBUG
-                print(f"La longitud de la lista ahora es: {len(session['perfiles_visitados'])}")
-                print("Estoy en la pagina: ", pagina)
-                #
 
                 # Recargo la pagina de busqueda y espero un poco
-                app.config['driver'].get(h.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
+                app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
                 
                 #
                 # app.config['driver'].get(f"{carlos}&page={pagina}")
@@ -419,7 +416,7 @@ def busqueda():
                 
                 h.wait_random_time()
                 # Construyo la lista de perfiles a visitar en esa pagina (LinkedIn muestra maximo 10 por cada una)
-                profiles = app.config['driver'].find_elements(By.XPATH, h.ELEMENT_PAGE_PROFILES)
+                profiles = app.config['driver'].find_elements(By.XPATH, l.ELEMENT_PAGE_PROFILES)
                 visit_profiles = [p for p in profiles]
                 # Itero sobre la lista de perfiles de cada pagina
                 i = 1
@@ -453,11 +450,11 @@ def busqueda():
                 if session.get('opcion') == '3':
                     # Construyo la lista de botones "Conectar" en cada una de las paginas
                     all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
-                    connect_buttons = [btn for btn in all_buttons if btn.text == h.ELEMENT_BUTTON_CONNECT]
+                    connect_buttons = [btn for btn in all_buttons if btn.text == l.ELEMENT_BUTTON_CONNECT]
                     for btn in connect_buttons:
                         app.config['driver'].execute_script("arguments[0].click();", btn)
                         h.wait_random_time()
-                        send = app.config['driver'].find_element(By.XPATH, h.ELEMENT_BUTTON_SEND_NOW)
+                        send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
                         app.config['driver'].execute_script("arguments[0].click();", send)
                         # TODO: conseguir saltar a contactos con mayor nivel de privacidad
 
@@ -530,18 +527,18 @@ def busqueda():
 def descargar():
     ''' Descarga el archivo CSV con la información de los perfiles sobre los que se ha actuado '''
     
-    with open(h.OUTPUT_CSV, mode='w', newline='', encoding='utf-8') as file:
+    with open(l.OUTPUT_CSV, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(['Nombre', 'Rol', 'URL', 'Fecha de visita', 'Accion'])
         if session.get('opcion') == '1':
-            accion = h.ACTION_PROFILE_VISITED
+            accion = l.ACTION_PROFILE_VISITED
         elif session.get('opcion') == '2':
-            accion = h.ACTION_MESSAGE_WRITTEN
+            accion = l.ACTION_MESSAGE_WRITTEN
         elif session.get('opcion') == '3':
-            accion = h.ACTION_CONNECTION_SENT
+            accion = l.ACTION_CONNECTION_SENT
         for perfil in session['perfiles_visitados']:
             writer.writerow([perfil.nombre, perfil.rol, perfil.url, datetime.now().date(), accion])
-    return send_file(h.OUTPUT_CSV, as_attachment=True)
+    return send_file(l.OUTPUT_CSV, as_attachment=True)
 
 
 
