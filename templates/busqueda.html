@@ -16,11 +16,12 @@ Filtra tu búsqueda
             <label for="busqueda" class="lead">Clave de busqueda</label>
             <input type="text" class="form-control mx-auto w-50" id="busqueda" name="texto_busqueda" autofocus required>
         </div>
+        <br>
         <div class="mb-3">
-            <label for="shots" class="lead">¿A cuántas personas aproximadamente quieres llegar?</label>
-            <input type="number" class="form-control mx-auto w-auto" id="numero_shots" name="numero_shots" placeholder="Numero de shots (opcional)">
-            <p class="lead"><i>* La búsqueda es más exacta si introduces un múltiplo de 10</i></p>
+            <label for="shots" class="lead">OPCIONAL: ¿a cuántas personas aproximadamente quieres llegar?</label>
+            <input type="number" class="form-control mx-auto w-auto" id="numero_shots" name="numero_shots">
         </div>
+        <br>
         <button type="submit" class="btn btn-primary">Buscar</button>
     </form>
     {% else %}

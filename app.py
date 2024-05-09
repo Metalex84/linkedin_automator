@@ -385,8 +385,28 @@ def busqueda():
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
         session['perfiles_visitados'] = []
 
-        # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles
+        # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles, y si el usuario ha agotado sus visitas gratuitas en LinkedIn
         app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
+        if session.get('opcion') == '2':
+            try:
+                # "¿Quieres probar Sales Navigator por 0€?"
+                app.config['driver'].find_element(By.XPATH, '//*[contains(@class,"artdeco-button--premium artdeco-button--secondary  premium-upsell-link--extra-long")]')
+                flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
+                return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')      
+            except NoSuchElementException:
+                # DEBUG:
+                print("No ha saltado el mensaje de Sales Navigator")
+                pass
+        else:
+            try:
+                # "¿Quieres probar Premium gratis durante un mes?"
+                app.config['driver'].find_element(By.XPATH, '//*[contains(@class, "artdeco-button artdeco-button--premium artdeco-button--primary")]')
+                flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
+                return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
+            except NoSuchElementException:
+                # DEBUG:
+                print("No ha saltado el mensaje de Premium")
+                pass
         
         # DEBUG: solo para buscar empresas concretas
         # app.config['driver'].get("https://www.linkedin.com/search/results/companies/?companyHqGeo=%5B%22105646813%22%5D&keywords=logistica&origin=FACETED_SEARCH&sid=Yo-")
@@ -403,11 +423,12 @@ def busqueda():
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
             return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
+
             # Obtengo cantidad de resultados y calculo numero de paginas
             str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
             num_pags = h.number_of_pages(str_results)
 
-            # Acoto a 100 el numero maximo de paginas a visitar porque LinkedIn no permirte visualizar mas
+            # Acoto a 100 el numero maximo de paginas a visitar porque LinkedIn no permirte visualizar más
             if num_pags > l.MAX_RESULT_PAGES:
                 num_pags = l.MAX_RESULT_PAGES
 
@@ -419,9 +440,8 @@ def busqueda():
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
                 
-                #
+                # DEBUG
                 # app.config['driver'].get(f"{carlos}&page={pagina}")
-                #
                 
                 h.wait_random_time()
 
@@ -431,34 +451,31 @@ def busqueda():
                 # Itero sobre la lista de perfiles de cada pagina
                 i = 1
                 for p in visit_profiles:
+                    # Guardo tambien el enlace al perfil
+                    url = p.get_attribute('href')
+                    usuario = h.extract_username(url)
+                    public_url = h.build_public_url(usuario)
+                    
                     try:
-                        # Si 'p' fuese un "Miembro de LinkedIn", estos elementos no existirían, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
+                        # Si el perfil no es visible o accesible, estos elementos no existirían, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
                         nombre = app.config['driver'].find_element(By.XPATH, h.path_name(i)).text
                         rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
-                        
-                        # Guardo tambien el enlace al perfil
-                        url = p.get_attribute('href')
-                        
-                        usuario = h.extract_username(url)
-                        public_url = h.build_public_url(usuario)
-
                         # DEBUG
-                        print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
-                        #
-                        
-                        # Agrego el contacto a la lista
-                        contacto = h.Persona(nombre, rol, url, public_url, None)
-                        # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
-                        if session.get('opcion') == '2':
-                            custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
-                            contacto.set_mensaje(custom_message)
-                        session['perfiles_visitados'].append(contacto)
+                        print(f'El perfil de {nombre} se titula "{rol}"')
 
                     except NoSuchElementException:
+                        # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...)
                         pass
-                    finally:
-                        i += 1
-                        h.wait_random_time()
+
+                    # Agrego el contacto a la lista
+                    contacto = h.Persona(nombre, rol, url, public_url, None)
+                    # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
+                    if session.get('opcion') == '2':
+                        custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
+                        contacto.set_mensaje(custom_message)
+                    session['perfiles_visitados'].append(contacto)
+                    i += 1
+                    h.wait_random_time()
 
                 # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
                 if session.get('opcion') == '3':
@@ -548,7 +565,7 @@ def descargar():
     
     with open(l.OUTPUT_CSV, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['Nombre', 'Rol', 'URL publica', 'Fecha de visita', 'Accion'])
+        writer.writerow(['Nombre', 'Rol', 'URL publica', 'Fecha de visita', 'Accion', 'Mensaje'])
         if session.get('opcion') == '1':
             accion = l.ACTION_PROFILE_VISITED
         elif session.get('opcion') == '2':
@@ -556,7 +573,7 @@ def descargar():
         elif session.get('opcion') == '3':
             accion = l.ACTION_CONNECTION_SENT
         for perfil in session['perfiles_visitados']:
-            writer.writerow([perfil.get_nombre(), perfil.get_rol(), perfil.get_public_url(), datetime.now().date(), accion])
+            writer.writerow([perfil.get_nombre(), perfil.get_rol(), perfil.get_public_url(), datetime.now().date(), accion, perfil.get_mensaje()])
     return send_file(l.OUTPUT_CSV, as_attachment=True)
 
 

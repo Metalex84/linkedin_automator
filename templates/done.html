@@ -11,7 +11,7 @@ Resultados
 <div class="container">
     <ol>
         {% for profile in session.perfiles_visitados %}
-        <li><a href="{{ profile.url }}" target="_blank">{{ profile.nombre }}, {{ profile.rol }}</a></li>
+        <li><a href="{{ profile.get_public_url() }}" target="_blank">{{ profile.get_nombre() }}, {{ profile.get_rol() }}</a></li>
         {% endfor %}
     </ol>
 </div>

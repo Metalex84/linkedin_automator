@@ -1,5 +1,5 @@
-# TODO: bug mientras construye lista de perfiles: podria colarse un elemento entre medias que jode la lista!
-# TODO: hilo asíncrono en busqueda
+# TODO: además de scrapear en "/busqueda" el titulo del perfil, coger el texto "Anterior / Actual"
+# TODO: hilo asíncrono en "/busqueda"
 # TODO: verificar reseteos de shots según tratamiento fechas
 # TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'?
 # TODO: configurar webdriver remoto?
