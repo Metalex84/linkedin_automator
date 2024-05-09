@@ -73,8 +73,8 @@ def login():
 
     if request.method == 'POST':
 
+        # Recupero los datos del usuario. Si hay más de uno o si no coincide la contraseña, devuelvo un mensaje de error
         user = db.get_user_by_name(request.form.get('username'))
-
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             flash(l.ERR_USER_OR_PASS_WRONG)
             return render_template('index.html', current_year=datetime.now().year)
@@ -131,23 +131,30 @@ def register():
     '''
 
     if request.method == "POST":
+        # Recupero los datos del formulario
         username = request.form.get('username')
         password = request.form.get('password')
         confirmation = request.form.get('confirmation')
 
+        # Compruebo si el usuario ya existe en la BD
         cursor = db.get_user_by_name(username)
         if len(cursor) != 0:
             flash(l.ERR_USER_ALREADY_EXISTS)
             return redirect(url_for('register'))
+        # O si no coinciden contraseña y confirmación
         elif password != confirmation:
             flash(l.ERR_PASSWORDS_NOT_MATCH)
             return redirect(url_for('register'))
+        # O si el email no es válido
         elif not h.check_valid_username(username):
             flash(l.ERR_CORPORATE_EMAIL)
             return redirect(url_for('register'))
         else:
+            # Genero contraseña cifrada e inserto todos los datos que conozco del usuario en la BD
             hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             db.insert_user(username, hash, l.MAX_WEEKLY_CONNECTIONS, l.MAX_DAILY_MESSAGES, l.MAX_MONTHLY_VISITS)
+            
+            # Recojo los datos del usuario recién registrado, asigno fecha y hora de conexión (actual) y guardo sus datos en sesión
             userdata = db.get_user_by_name(username)
             session["user_id"] = userdata[0]['id']
             db.set_last_connection_by_id(datetime.now().strftime(l.DATE_FORMAT), session["user_id"])
@@ -245,17 +252,20 @@ def linklogin():
     2. Controlo posible fallo de login, devolviendo un mensaje de error
     '''
     if request.method == 'POST':
-        # Si no tengo los datos cogidos desde la session, los recojo del formulario
+        # Si no tengo los datos cogidos desde la sesión, los recojo del formulario
         if not (session.get('link_user') and session.get('link_pass')):
             usuario = request.form.get('username')
             contrasena = request.form.get('password')
-
+            
+            # En el HTML no son campos "required" porque si están en sesión no los necesito.
+            # Pero si no están en sesión, valido si el usuario los introduce o no.
             if not usuario:
                 flash(l.ERR_NO_LINKEDIN_USER)
                 return redirect(url_for('linklogin'))
             elif not contrasena:
                 flash(l.ERR_NO_LINKEDIN_PASS)
                 return redirect(url_for('linklogin'))
+        # Si ya tengo el login de linkedin en sesión, ya no lo vuelvo a pedir mientras dure la sesión
         else:
             usuario = session.get('link_user')
             contrasena = session.get('link_pass')
@@ -265,8 +275,7 @@ def linklogin():
         # chrome_options.add_argument("--headless")
         # app.config['driver'] = webdriver.Chrome(options=chrome_options)
         
-        # app.config['driver'] =  webdriver.Remote(command_executor='http://127.0.0.1:4444/wd/hub', options=webdriver.FirefoxOptions())
-        app.config['driver'] = webdriver.Firefox()
+        app.config['driver'] = webdriver.Chrome()
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
         username = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_KEY)
         password = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_PASSWORD)
@@ -318,32 +327,40 @@ def busqueda():
         cuadro_texto = request.form.get('texto_busqueda')
         numero_shots = request.form.get('numero_shots')
 
+        # Si el usuario deja vacío el campo de los shots, le asigno el máximo de los que tiene disponibles
         if numero_shots.strip() == '':
             if session.get('opcion') == '1':
-                numero_shots = l.MAX_MONTHLY_VISITS
+                numero_shots = session.get('visits_left', 0)
             elif session.get('opcion') == '2':
-                numero_shots = l.MAX_DAILY_MESSAGES
+                numero_shots = session.get('messages_left', 0)
             elif session.get('opcion') == '3':
-                numero_shots = l.MAX_WEEKLY_CONNECTIONS
+                numero_shots = session.get('connections_left', 0)
         else:
             # Valido si el dato introducido está en los límites, es un entero positivo, etc
             if session.get('opcion') == '1':
-                numero_shots = h.check_number(request.form.get('numero_shots'), l.MAX_MONTHLY_VISITS)
+                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('visits_left', 0))
             elif session.get('opcion') == '2':
                 numero_shots = h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
             elif session.get('opcion') == '3':
                 numero_shots = h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
+            # Esto se ejecuta si la comprobación de los shots resulta en un error
             if not numero_shots:
                 if session.get('opcion') == '1':
-                    flash(l.ERR_RANGE_INT)
+                    flash(l.ERR_NUMERICAL_SHOTS + session.get('visits_left', 0))
+                    return redirect(url_for('busqueda'))
                 elif session.get('opcion') == '2':
                     flash(l.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
+                    return redirect(url_for('busqueda'))
                 elif session.get('opcion') == '3':
                     flash(l.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
+                    return redirect(url_for('busqueda'))
                 return redirect(url_for('busqueda'))
             
         # Si el número de shots que el usuario pide hacer es mayor que los que tiene disponibles, le devuelvo un mensaje de error
-        if session.get('opcion') == '2' and numero_shots > int(session.get('messages_left', 0)):
+        if session.get('opcion') == '1' and numero_shots > int(session.get('visits_left', 0)):
+            flash(l.ERR_NO_SHOTS_LEFT)
+            return redirect(url_for('busqueda'))
+        elif session.get('opcion') == '2' and numero_shots > int(session.get('messages_left', 0)):
             flash(l.ERR_NO_SHOTS_LEFT)
             return redirect(url_for('busqueda'))
         elif session.get('opcion') == '3' and numero_shots > int(session.get('connections_left', 0)):

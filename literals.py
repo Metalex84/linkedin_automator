@@ -17,7 +17,6 @@ ERR_NO_LINKEDIN_PASS = "¡Introduce una contraseña de LinkedIn!"
 ERR_LINKEDIN_LOGIN_WRONG = "¡Usuario o contraseña de LinkedIn incorrectos!"
 ERR_NO_SHOTS_LEFT = "¡No tienes suficientes acciones restantes!"
 ERR_NUMERICAL_SHOTS = "Por favor, introduce un número entre 1 y "
-ERR_RANGE_INT = "¡Introduce un entero positivo!"
 
 ACTION_VISIT_PROFILES = "visitar perfiles"
 ACTION_WRITE_MESSAGES = "escribir mensajes"
