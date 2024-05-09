@@ -7,14 +7,15 @@ Filtra tu búsqueda
 {% block main %}
 <div class="container mt-5">
     <h2>Bienvenido, {{ session.link_user }}</h2>
-    <h3>Te quedan <u>{{ session.messages_left }}</u> mensajes restantes hoy</h3>
-    <h3>Te quedan <u>{{ session.connections_left }}</u> solicitudes de conexión restantes esta semana</h3>
-    <h3>Te quedan <u>{{ session.visits_left }}</u> visitas restantes este mes</h3>
+    <p class="lead">Te quedan <b>{{ session.messages_left }}</b> mensajes restantes hoy, <b>{{ session.connections_left
+            }}</b> solicitudes de conexión restantes esta semana y <b>{{ session.visits_left }}</b> visitas restantes
+        este mes</p>
+    <br>
     {% if session.messages_left > 0 or session.connections_left > 0 or session.visits_left > 0 %}
     <form action="/busqueda" method="post">
         <div class="mb-3">
-            <label for="busqueda" class="lead">Clave de busqueda</label>
-            <input type="text" class="form-control mx-auto w-50" id="busqueda" name="texto_busqueda" autofocus required>
+            <input type="text" class="form-control mx-auto w-50" id="busqueda" name="texto_busqueda" autofocus
+                placeholder="¿Qué deseas buscar" required>
         </div>
         <br>
         <div class="mb-3">

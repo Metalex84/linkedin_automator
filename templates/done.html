@@ -9,11 +9,22 @@ Resultados
 <h2>{{ tiempo }}</h2>
 <h3><i>Accion completada sobre {{ numero_perfiles }} perfiles</i></h3>
 <div class="container">
-    <ol>
+    <table class="table table-striped">
+        <thead class="thead-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Rol</th>
+            </tr>
+        </thead>
         {% for profile in session.perfiles_visitados %}
-        <li><a href="{{ profile.get_public_url() }}" target="_blank">{{ profile.get_nombre() }}, {{ profile.get_rol() }}</a></li>
+        <tr>
+            <td scope="row">-</td>
+            <td><a href="{{ profile.get_public_url() }}" target="_blank">{{ profile.get_nombre() }}</a></td>
+            <td>{{ profile.get_rol() }}</a></td>
+        </tr>
         {% endfor %}
-    </ol>
+    </table>
 </div>
 <div class="container text-center mb-5">
     <div class="mb-3">

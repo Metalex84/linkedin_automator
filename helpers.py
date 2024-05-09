@@ -2,9 +2,9 @@ from flask import redirect, render_template, session
 from functools import wraps
 from urllib.parse import urlparse
 
-import random
-import time
-import math
+from random import randint
+from time import sleep
+from math import ceil
 
 
 
@@ -12,8 +12,9 @@ def path_name(i):
     return f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[1]/div/span[1]/span/a/span/span[1]"
 
 
-def path_role(i):
-    return f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/div/div[2]"
+
+def path_role(i): 
+    return f"//div[3]/div[2]/div/div[1]/main/div/div/div[2]/div/ul/li[{i}]/div/div/div/div[2]/p"
                         
 
 
@@ -78,7 +79,7 @@ def build_public_url(username):
 
 def wait_random_time():
     ''' Funcion que fuerza un tiempo de espera aleatorio entre 1 y 7 segundos para simular comportamiento humano '''
-    time.sleep(random.randint(1, 7))
+    sleep(randint(1, 7))
 
 
 
@@ -102,7 +103,8 @@ def number_of_pages(str_results):
         buffer = num_results[1].split('.')
         resultados = int(buffer[0].join(buffer[1]))
     finally:
-        return (math.ceil(resultados / 10))
+        return (ceil(resultados / 10))
+
 
 
 

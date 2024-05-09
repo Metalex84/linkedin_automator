@@ -3,13 +3,14 @@ from flask_session import Session
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 # from selenium.webdriver.chrome.options import Options
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from datetime import datetime, date
+from math import ceil
+from datetime import datetime
 import time
 import csv
 
@@ -277,8 +278,14 @@ def linklogin():
         
         app.config['driver'] = webdriver.Chrome()
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
-        username = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_KEY)
-        password = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_PASSWORD)
+        try:
+            username = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_KEY)
+            password = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_PASSWORD)
+        except NoSuchElementException:
+            flash(l.ERR_LINKEDIN_LOGIN_WRONG)
+            app.config['driver'].quit()
+            return redirect(url_for('linklogin'))
+        
         username.send_keys(usuario)
         password.send_keys(contrasena)
         app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SUBMIT).click()
@@ -338,6 +345,135 @@ def validate_shots(numero_shots):
         else:
             return h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
         
+
+
+##################################################################
+def async_scrapping(shots, deep, cuadro_texto):
+    '''
+    Realizo el scrapeo como tal, recorriendo páginas de resultados.
+    Se ejecutará en un hilo asíncrono para no bloquear la aplicación.
+    '''
+
+    # Obtengo cantidad de resultados y calculo numero de paginas
+    str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
+    num_pags = h.number_of_pages(str_results)
+    # "shots" me da una idea de cuántas páginas como mucho voy a recorrer
+    pages_shot = ceil(shots / 10)
+
+    # Acoto a 100 el numero maximo de paginas a visitar porque LinkedIn no permirte visualizar más
+    if num_pags > l.MAX_RESULT_PAGES:
+        num_pags = l.MAX_RESULT_PAGES
+
+    
+    # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
+    pagina = 1
+    # El bucle externo se detiene en la última página o si se ha alcanzado el tope de shots definido
+    while (pagina <= num_pags and pagina <= pages_shot):
+
+        # Recargo la pagina de busqueda y espero un poco
+        app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
+        
+        # DEBUG
+        # app.config['driver'].get(f"{carlos}&page={pagina}")
+        
+        h.wait_random_time()
+
+        # Construyo la lista de perfiles a visitar en esa pagina (LinkedIn muestra maximo 10 por cada una)
+        profiles = app.config['driver'].find_elements(By.XPATH, l.ELEMENT_PAGE_PROFILES)
+        visit_profiles = [p for p in profiles]
+        # Itero sobre la lista de perfiles de cada pagina
+        i = 1
+        for p in visit_profiles:            
+            try:
+                # Guardo el enlace al perfil
+                url = p.get_attribute('href')
+                usuario = h.extract_username(url)
+                public_url = h.build_public_url(usuario)
+                
+                # Si el perfil no es visible o accesible, estos elementos no existirían, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
+                nombre = app.config['driver'].find_element(By.XPATH, h.path_name(i)).text
+                rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
+                
+                # DEBUG
+                print(f'El perfil de {nombre} se titula "{rol}" y su url es {public_url}')
+
+                # Agrego el contacto a la lista
+                contacto = h.Persona(nombre, rol, url, public_url, None)
+                # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
+                if session.get('opcion') == '2':
+                    custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
+                    contacto.set_mensaje(custom_message)
+                session['perfiles_visitados'].append(contacto)
+                
+            except NoSuchElementException:
+                # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...), así que paso al siguiente
+                print("Ojo, algun dato no se ha podido recuperar")
+                i += 1
+                pass
+            finally:
+                i += 1
+                h.wait_random_time()
+
+        # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
+        if session.get('opcion') == '3':
+            # Construyo la lista de botones "Conectar" en cada una de las paginas
+            all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
+            connect_buttons = [btn for btn in all_buttons if btn.text == l.ELEMENT_BUTTON_CONNECT]
+            for btn in connect_buttons:
+                app.config['driver'].execute_script("arguments[0].click();", btn)
+                h.wait_random_time()
+                send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
+                app.config['driver'].execute_script("arguments[0].click();", send)
+                # TODO: conseguir saltar a contactos con mayor nivel de privacidad
+        '''
+        elif session.get('opcion') == '2':
+            message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
+
+            for btn in message_buttons:
+                # Click en el boton de mandar el mensaje y esperar un poco
+                app.config['driver'].execute_script("arguments[0].click();", btn)
+                h.wait_random_time()
+                # Conseguir el nombre del destinatario y personalizar el mensaje
+                name = btn.get_attribute('aria-label').split(' ')[3]
+                custom_message = app.config['texto_mensaje'].replace('----', name)
+                # TODO: aquí, añadir mensaje a clase Persona
+
+
+                # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
+                # app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
+                # textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                
+                # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
+                # textfields[-6].clear()
+                # textfields[-5].clear()
+                # En el párrafo que queda, escribo el mensaje personalizado y vuelvo a esperar
+                # textfields[-5].send_keys(custom_message)
+                
+                # TODO: ojo, este es un punto critico!!!!
+                # Hago click en enviar
+                # send_button = app.config['driver'].find_element(By.XPATH, "//button[starts-with(@class, 'msg-form__send-button')]")
+                # app.config['driver'].execute_script("arguments[0].click();", send_button)
+                
+                # Busco darle a intro en el cuadro de texto, pero para eso hay que tener configurado antes eso en el LinkedIn de cada cual.
+                # textfields[-5].send_keys(Keys.RETURN)
+
+                # Hago click en cerrar la ventanita del mensaje y espero
+                close_window_msg = app.config['driver'].find_element(By.XPATH, "//button[contains(@class, 'msg-overlay-bubble-header__control artdeco-button artdeco-button--circle artdeco-button--muted artdeco-button--1 artdeco-button--tertiary ember-view')]")
+                app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
+                h.wait_random_time()
+        '''
+        pagina += 1
+    
+    # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
+    '''
+    if session.get('opcion') == '1':
+        for person in session['perfiles_visitados']:
+            app.config['driver'].get(person.url)
+            h.wait_random_time()
+    '''
+    # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
+##################################################################
+
 
 
 @app.route('/busqueda', methods=['POST', 'GET'])
@@ -424,116 +560,8 @@ def busqueda():
             return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
 
-            # Obtengo cantidad de resultados y calculo numero de paginas
-            str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
-            num_pags = h.number_of_pages(str_results)
-
-            # Acoto a 100 el numero maximo de paginas a visitar porque LinkedIn no permirte visualizar más
-            if num_pags > l.MAX_RESULT_PAGES:
-                num_pags = l.MAX_RESULT_PAGES
-
-            # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
-            pagina = 1
-            # El bucle externo se detiene en la última página o si se ha alcanzado el tope de shots definido
-            while (pagina <= num_pags and len(session['perfiles_visitados']) < shots):
-
-                # Recargo la pagina de busqueda y espero un poco
-                app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
-                
-                # DEBUG
-                # app.config['driver'].get(f"{carlos}&page={pagina}")
-                
-                h.wait_random_time()
-
-                # Construyo la lista de perfiles a visitar en esa pagina (LinkedIn muestra maximo 10 por cada una)
-                profiles = app.config['driver'].find_elements(By.XPATH, l.ELEMENT_PAGE_PROFILES)
-                visit_profiles = [p for p in profiles]
-                # Itero sobre la lista de perfiles de cada pagina
-                i = 1
-                for p in visit_profiles:
-                    # Guardo tambien el enlace al perfil
-                    url = p.get_attribute('href')
-                    usuario = h.extract_username(url)
-                    public_url = h.build_public_url(usuario)
-                    
-                    try:
-                        # Si el perfil no es visible o accesible, estos elementos no existirían, por lo que se lanzaria otra excepcion, que capturo y salto al siguiente perfil
-                        nombre = app.config['driver'].find_element(By.XPATH, h.path_name(i)).text
-                        rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
-                        # DEBUG
-                        print(f'El perfil de {nombre} se titula "{rol}"')
-
-                    except NoSuchElementException:
-                        # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...)
-                        pass
-
-                    # Agrego el contacto a la lista
-                    contacto = h.Persona(nombre, rol, url, public_url, None)
-                    # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
-                    if session.get('opcion') == '2':
-                        custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
-                        contacto.set_mensaje(custom_message)
-                    session['perfiles_visitados'].append(contacto)
-                    i += 1
-                    h.wait_random_time()
-
-                # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
-                if session.get('opcion') == '3':
-                    # Construyo la lista de botones "Conectar" en cada una de las paginas
-                    all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
-                    connect_buttons = [btn for btn in all_buttons if btn.text == l.ELEMENT_BUTTON_CONNECT]
-                    for btn in connect_buttons:
-                        app.config['driver'].execute_script("arguments[0].click();", btn)
-                        h.wait_random_time()
-                        send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
-                        app.config['driver'].execute_script("arguments[0].click();", send)
-                        # TODO: conseguir saltar a contactos con mayor nivel de privacidad
-                '''
-                elif session.get('opcion') == '2':
-                    message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
-
-                    for btn in message_buttons:
-                        # Click en el boton de mandar el mensaje y esperar un poco
-                        app.config['driver'].execute_script("arguments[0].click();", btn)
-                        h.wait_random_time()
-                        # Conseguir el nombre del destinatario y personalizar el mensaje
-                        name = btn.get_attribute('aria-label').split(' ')[3]
-                        custom_message = app.config['texto_mensaje'].replace('----', name)
-                        # TODO: aquí, añadir mensaje a clase Persona
-
-
-                        # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
-                        # app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
-                        # textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
-                        
-                        # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
-                        # textfields[-6].clear()
-                        # textfields[-5].clear()
-                        # En el párrafo que queda, escribo el mensaje personalizado y vuelvo a esperar
-                        # textfields[-5].send_keys(custom_message)
-                        
-                        # TODO: ojo, este es un punto critico!!!!
-                        # Hago click en enviar
-                        # send_button = app.config['driver'].find_element(By.XPATH, "//button[starts-with(@class, 'msg-form__send-button')]")
-                        # app.config['driver'].execute_script("arguments[0].click();", send_button)
-                        
-                        # Busco darle a intro en el cuadro de texto, pero para eso hay que tener configurado antes eso en el LinkedIn de cada cual.
-                        # textfields[-5].send_keys(Keys.RETURN)
-
-                        # Hago click en cerrar la ventanita del mensaje y espero
-                        close_window_msg = app.config['driver'].find_element(By.XPATH, "//button[contains(@class, 'msg-overlay-bubble-header__control artdeco-button artdeco-button--circle artdeco-button--muted artdeco-button--1 artdeco-button--tertiary ember-view')]")
-                        app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
-                        h.wait_random_time()
-                '''
-                pagina += 1
-            
-            # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
-            '''
-            if session.get('opcion') == '1':
-                for person in session['perfiles_visitados']:
-                    app.config['driver'].get(person.url)
-                    h.wait_random_time()
-            '''
+            async_scrapping(shots, deep, cuadro_texto)
+           
             # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
             end = time.time()
             app.config['driver'].quit()
