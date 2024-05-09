@@ -447,7 +447,11 @@ def busqueda():
                         #
                         
                         # Agrego el contacto a la lista
-                        contacto = h.Persona(nombre, rol, url, public_url)
+                        contacto = h.Persona(nombre, rol, url, public_url, None)
+                        # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
+                        if session.get('opcion') == '2':
+                            custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
+                            contacto.set_mensaje(custom_message)
                         session['perfiles_visitados'].append(contacto)
 
                     except NoSuchElementException:
@@ -467,9 +471,8 @@ def busqueda():
                         send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
                         app.config['driver'].execute_script("arguments[0].click();", send)
                         # TODO: conseguir saltar a contactos con mayor nivel de privacidad
-
+                '''
                 elif session.get('opcion') == '2':
-                    # TODO: ENVIO DE MENSAJES, no va a ser posible implementarlo asi
                     message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
 
                     for btn in message_buttons:
@@ -479,16 +482,18 @@ def busqueda():
                         # Conseguir el nombre del destinatario y personalizar el mensaje
                         name = btn.get_attribute('aria-label').split(' ')[3]
                         custom_message = app.config['texto_mensaje'].replace('----', name)
+                        # TODO: aquí, añadir mensaje a clase Persona
+
 
                         # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
-                        app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
-                        textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
+                        # app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
+                        # textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
                         
                         # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
                         # textfields[-6].clear()
                         # textfields[-5].clear()
                         # En el párrafo que queda, escribo el mensaje personalizado y vuelvo a esperar
-                        textfields[-5].send_keys(custom_message)
+                        # textfields[-5].send_keys(custom_message)
                         
                         # TODO: ojo, este es un punto critico!!!!
                         # Hago click en enviar
@@ -496,12 +501,13 @@ def busqueda():
                         # app.config['driver'].execute_script("arguments[0].click();", send_button)
                         
                         # Busco darle a intro en el cuadro de texto, pero para eso hay que tener configurado antes eso en el LinkedIn de cada cual.
-                        textfields[-5].send_keys(Keys.RETURN)
+                        # textfields[-5].send_keys(Keys.RETURN)
 
                         # Hago click en cerrar la ventanita del mensaje y espero
                         close_window_msg = app.config['driver'].find_element(By.XPATH, "//button[contains(@class, 'msg-overlay-bubble-header__control artdeco-button artdeco-button--circle artdeco-button--muted artdeco-button--1 artdeco-button--tertiary ember-view')]")
                         app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
                         h.wait_random_time()
+                '''
                 pagina += 1
             
             # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
@@ -528,7 +534,7 @@ def busqueda():
 
     else:
         if session.get('user_id') is not None:
-            return render_template('busqueda.html', usuario=session.get('link_user'), current_year=datetime.now().year)
+            return render_template('busqueda.html', current_year=datetime.now().year)
         else:
             app.config['driver'].quit()
             return render_template('index.html', current_year=datetime.now().year)
@@ -550,7 +556,7 @@ def descargar():
         elif session.get('opcion') == '3':
             accion = l.ACTION_CONNECTION_SENT
         for perfil in session['perfiles_visitados']:
-            writer.writerow([perfil.nombre, perfil.rol, perfil.public_url, datetime.now().date(), accion])
+            writer.writerow([perfil.get_nombre(), perfil.get_rol(), perfil.get_public_url(), datetime.now().date(), accion])
     return send_file(l.OUTPUT_CSV, as_attachment=True)
 
 

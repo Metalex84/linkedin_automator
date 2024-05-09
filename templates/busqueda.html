@@ -6,7 +6,7 @@ Filtra tu búsqueda
 
 {% block main %}
 <div class="container mt-5">
-    <h2>Bienvenido, {{ usuario }}</h2>
+    <h2>Bienvenido, {{ session.link_user }}</h2>
     <h3>Te quedan <u>{{ session.messages_left }}</u> mensajes restantes hoy</h3>
     <h3>Te quedan <u>{{ session.connections_left }}</u> solicitudes de conexión restantes esta semana</h3>
     <h3>Te quedan <u>{{ session.visits_left }}</u> visitas restantes este mes</h3>

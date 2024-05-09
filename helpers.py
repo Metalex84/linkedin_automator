@@ -18,12 +18,44 @@ def path_role(i):
 
 class Persona:
     ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
-    def __init__(self, nombre, rol, url, public_url):
-        self.nombre = nombre
-        self.rol = rol
-        self.url = url
-        self.public_url = public_url
+    def __init__(self, nombre, rol, url, public_url, mensaje):
+        self._nombre = nombre
+        self._rol = rol
+        self._url = url
+        self._public_url = public_url
+        self._mensaje = mensaje
+    
+    def get_nombre(self):
+        return self._nombre
+    
+    def set_nombre(self, nombre):
+        self._nombre = nombre
+    
+    def get_rol(self):
+        return self._rol
+    
+    def set_rol(self, rol):
+        self._rol = rol
+    
+    def get_url(self):
+        return self._url
+    
+    def set_url(self, url):
+        self._url = url
+    
+    def get_public_url(self):
+        return self._public_url
+
+    def set_public_url(self, public_url):
+        self._public_url = public_url    
+    
+    def get_mensaje(self):
+        return self._mensaje
+
+    def set_mensaje(self, mensaje):
+        self._mensaje = mensaje
         
+
 
 
 def extract_username(url):

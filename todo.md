@@ -1,7 +1,6 @@
 # TODO: bug mientras construye lista de perfiles: podria colarse un elemento entre medias que jode la lista!
 # TODO: hilo asíncrono en busqueda
 # TODO: verificar reseteos de shots según tratamiento fechas
-# TODO: crear TXT con mensajes personalizados aparte del reporte en CSV
 # TODO: configurar Session en base de datos con SQLAlchemy en vez de 'filesystem'?
 # TODO: configurar webdriver remoto?
 # TODO: rellenar y guardar un historial de acciones realizadas
@@ -14,3 +13,5 @@
 ## TODO: ¿guardar en el csv el nombre de usuario de LinkedIn, o la URL de su perfil?
 ## TODO: ajustar CSV a estructura legible para HubSpot
 ## TODO: ajustar anchura de los cuadros de texto de pedir datos
+## TODO: presentar "done.html" con tabla a la izquierda y no con lista central
+## TODO: en "busqueda", separar más los elementos y mostrar los límites como texto estilado, no como encabezados
