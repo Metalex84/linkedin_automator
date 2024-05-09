@@ -18,10 +18,11 @@ def path_role(i):
 
 class Persona:
     ''' Clase que representa a una persona con su nombre y lo que tenga puesto como informacion principal de perfil'''
-    def __init__(self, nombre, rol, url):
+    def __init__(self, nombre, rol, url, public_url):
         self.nombre = nombre
         self.rol = rol
         self.url = url
+        self.public_url = public_url
         
 
 
@@ -33,6 +34,12 @@ def extract_username(url):
         return path_comp[2]
     else:
         return None
+
+
+
+def build_public_url(username):
+    ''' Funcion que construye la url publica de LinkedIn a partir del nombre de usuario '''
+    return f"https://www.linkedin.com/in/{username}"
 
 
 

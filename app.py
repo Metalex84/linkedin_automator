@@ -315,6 +315,31 @@ def viewprofile():
         
 
 
+def validate_shots(numero_shots):
+    ''' 
+    Valido el numero de shots introducido por el usuario.
+    Si deja el valor vacio, devuelvo el maximo de shots que tiene disponible.
+    Si introduce un valor, lo valido y devuelvo el valor correcto
+    Si da un error, se valida como "not number"
+    '''
+    if session.get('opcion') == '1':
+        if numero_shots.strip() == '':
+            return session.get('visits_left', 0)
+        else:
+            return h.check_number(request.form.get('numero_shots'), session.get('visits_left', 0))
+    elif session.get('opcion') == '2':
+        if numero_shots.strip() == '':
+            return session.get('messages_left', 0)
+        else:
+            return h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
+    elif session.get('opcion') == '3':
+        if numero_shots.strip() == '':
+            return session.get('connections_left', 0)
+        else:
+            return h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
+        
+
+
 @app.route('/busqueda', methods=['POST', 'GET'])
 @h.login_required
 def busqueda():
@@ -327,59 +352,38 @@ def busqueda():
         cuadro_texto = request.form.get('texto_busqueda')
         numero_shots = request.form.get('numero_shots')
 
-        # Si el usuario deja vacío el campo de los shots, le asigno el máximo de los que tiene disponibles
-        if numero_shots.strip() == '':
-            if session.get('opcion') == '1':
-                numero_shots = session.get('visits_left', 0)
-            elif session.get('opcion') == '2':
-                numero_shots = session.get('messages_left', 0)
-            elif session.get('opcion') == '3':
-                numero_shots = session.get('connections_left', 0)
-        else:
-            # Valido si el dato introducido está en los límites, es un entero positivo, etc
-            if session.get('opcion') == '1':
-                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('visits_left', 0))
-            elif session.get('opcion') == '2':
-                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('messages_left', 0))
-            elif session.get('opcion') == '3':
-                numero_shots = h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
-            # Esto se ejecuta si la comprobación de los shots resulta en un error
-            if not numero_shots:
-                if session.get('opcion') == '1':
-                    flash(l.ERR_NUMERICAL_SHOTS + session.get('visits_left', 0))
-                    return redirect(url_for('busqueda'))
-                elif session.get('opcion') == '2':
-                    flash(l.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
-                    return redirect(url_for('busqueda'))
-                elif session.get('opcion') == '3':
-                    flash(l.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
-                    return redirect(url_for('busqueda'))
-                return redirect(url_for('busqueda'))
-            
-        # Si el número de shots que el usuario pide hacer es mayor que los que tiene disponibles, le devuelvo un mensaje de error
-        if session.get('opcion') == '1' and numero_shots > int(session.get('visits_left', 0)):
-            flash(l.ERR_NO_SHOTS_LEFT)
-            return redirect(url_for('busqueda'))
-        elif session.get('opcion') == '2' and numero_shots > int(session.get('messages_left', 0)):
-            flash(l.ERR_NO_SHOTS_LEFT)
-            return redirect(url_for('busqueda'))
-        elif session.get('opcion') == '3' and numero_shots > int(session.get('connections_left', 0)):
-            flash(l.ERR_NO_SHOTS_LEFT)
-            return redirect(url_for('busqueda'))
-        
-        # Reseteo los perfiles visitados en sesion en cada nueva busqueda
-        session['perfiles_visitados'] = []
+        shots = validate_shots(numero_shots)
 
-        # Discrimino profundidad en base a opcion
         if session.get('opcion') == '1':
             # Visitar perfiles: a contactos de segundo y tercer grado
             deep = l.DEEP_2_3
+            if not shots:
+                flash(l.ERR_NUMERICAL_SHOTS + session.get('visits_left', 0))
+                return redirect(url_for('busqueda'))
+            elif shots > int(session.get('visits_left', 0)):
+                flash(l.ERR_NO_SHOTS_LEFT)
+                return redirect(url_for('busqueda'))
         elif session.get('opcion') == '2':
             # Enviar mensajes solo a contactos de primer grado
             deep = l.DEEP_1
+            if not shots:
+                flash(l.ERR_NUMERICAL_SHOTS + session.get('messages_left', 0))
+                return redirect(url_for('busqueda'))
+            elif shots > int(session.get('messages_left', 0)):
+                flash(l.ERR_NO_SHOTS_LEFT)
+                return redirect(url_for('busqueda'))
         elif session.get('opcion') == '3':
             # Solicitud de conexion: solo a contactos de segundo grado
             deep = l.DEEP_2
+            if not shots:
+                flash(l.ERR_NUMERICAL_SHOTS + session.get('connections_left', 0))
+                return redirect(url_for('busqueda'))
+            elif shots > int(session.get('connections_left', 0)):
+                flash(l.ERR_NO_SHOTS_LEFT)
+                return redirect(url_for('busqueda'))
+        
+        # Reseteo los perfiles visitados en sesion en cada nueva busqueda
+        session['perfiles_visitados'] = []
 
         # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles
         app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
@@ -397,19 +401,20 @@ def busqueda():
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
-            return render_template("done.html", profiles=session['perfiles_visitados'], current_year=datetime.now().year, tiempo='(sin resultados)')
+            return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
         except NoSuchElementException:
             # Obtengo cantidad de resultados y calculo numero de paginas
             str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
             num_pags = h.number_of_pages(str_results)
-            # Acoto a 100 el numero maximo de paginas a visitar por seguridad
+
+            # Acoto a 100 el numero maximo de paginas a visitar porque LinkedIn no permirte visualizar mas
             if num_pags > l.MAX_RESULT_PAGES:
                 num_pags = l.MAX_RESULT_PAGES
 
             # Comienzo bucle externo. Si he llegado aquí, siempre debería encontrar al menos 1 página.
             pagina = 1
             # El bucle externo se detiene en la última página o si se ha alcanzado el tope de shots definido
-            while (pagina <= num_pags and len(session['perfiles_visitados']) < numero_shots):
+            while (pagina <= num_pags and len(session['perfiles_visitados']) < shots):
 
                 # Recargo la pagina de busqueda y espero un poco
                 app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
@@ -419,6 +424,7 @@ def busqueda():
                 #
                 
                 h.wait_random_time()
+
                 # Construyo la lista de perfiles a visitar en esa pagina (LinkedIn muestra maximo 10 por cada una)
                 profiles = app.config['driver'].find_elements(By.XPATH, l.ELEMENT_PAGE_PROFILES)
                 visit_profiles = [p for p in profiles]
@@ -431,17 +437,17 @@ def busqueda():
                         rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
                         
                         # Guardo tambien el enlace al perfil
-                        p_url = p.get_attribute('href')
+                        url = p.get_attribute('href')
                         
-                        # Puede que más adelante necesite hacer algo con el nombre de usuario de LinkedIn de cada contacto
-                        usuario = h.extract_username(p_url)
+                        usuario = h.extract_username(url)
+                        public_url = h.build_public_url(usuario)
 
                         # DEBUG
                         print(f'El perfil de {nombre}, {rol} se identifica como {usuario}')
                         #
                         
                         # Agrego el contacto a la lista
-                        contacto = h.Persona(nombre, rol, p_url)
+                        contacto = h.Persona(nombre, rol, url, public_url)
                         session['perfiles_visitados'].append(contacto)
 
                     except NoSuchElementException:
@@ -536,7 +542,7 @@ def descargar():
     
     with open(l.OUTPUT_CSV, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['Nombre', 'Rol', 'URL', 'Fecha de visita', 'Accion'])
+        writer.writerow(['Nombre', 'Rol', 'URL publica', 'Fecha de visita', 'Accion'])
         if session.get('opcion') == '1':
             accion = l.ACTION_PROFILE_VISITED
         elif session.get('opcion') == '2':
@@ -544,7 +550,7 @@ def descargar():
         elif session.get('opcion') == '3':
             accion = l.ACTION_CONNECTION_SENT
         for perfil in session['perfiles_visitados']:
-            writer.writerow([perfil.nombre, perfil.rol, perfil.url, datetime.now().date(), accion])
+            writer.writerow([perfil.nombre, perfil.rol, perfil.public_url, datetime.now().date(), accion])
     return send_file(l.OUTPUT_CSV, as_attachment=True)
 
 
