@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, render_template, url_for, request, session, send_file
+from flask import Flask, flash, redirect, render_template, url_for, request, session, jsonify, send_file
 from flask_session import Session
 
 from selenium import webdriver
@@ -13,6 +13,7 @@ from math import ceil
 from datetime import datetime
 import time
 import csv
+from threading import Thread
 
 import helpers as h
 import literals as l
@@ -35,6 +36,7 @@ Session(app)
 ''' Configuro variables globales'''
 app.config['driver'] = None
 app.config['texto_mensaje'] = None
+app.config['scrapping'] = None
 
 
 
@@ -353,7 +355,11 @@ def async_scrapping(shots, deep, cuadro_texto):
     Realizo el scrapeo como tal, recorriendo páginas de resultados.
     Se ejecutará en un hilo asíncrono para no bloquear la aplicación.
     '''
-
+    print("\n\nEntrando en el hilo...\n\n")
+    # Empiezo a contar el tiempo
+    start = time.time()
+    end = 0.0
+    
     # Obtengo cantidad de resultados y calculo numero de paginas
     str_results = app.config['driver'].find_element(By.XPATH, l.PATH_NUMBER_RESULTS)
     num_pags = h.number_of_pages(str_results)
@@ -471,7 +477,12 @@ def async_scrapping(shots, deep, cuadro_texto):
             app.config['driver'].get(person.url)
             h.wait_random_time()
     '''
-    # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
+    # Paro el reloj, cierro el scrapper
+    end = time.time()
+    app.config['driver'].quit()
+    session['tiempo'] = h.parse_time(round(end - start, 2))
+    print("\n\nSaliendo del hilo...\n\n")
+    return 
 ##################################################################
 
 
@@ -528,7 +539,9 @@ def busqueda():
                 # "¿Quieres probar Sales Navigator por 0€?"
                 app.config['driver'].find_element(By.XPATH, '//*[contains(@class,"artdeco-button--premium artdeco-button--secondary  premium-upsell-link--extra-long")]')
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')      
+                session['tiempo'] = '(sin resultados)'
+                app.config['driver'].quit()
+                return render_template("done.html", current_year=datetime.now().year)      
             except NoSuchElementException:
                 # DEBUG:
                 print("No ha saltado el mensaje de Sales Navigator")
@@ -538,7 +551,9 @@ def busqueda():
                 # "¿Quieres probar Premium gratis durante un mes?"
                 app.config['driver'].find_element(By.XPATH, '//*[contains(@class, "artdeco-button artdeco-button--premium artdeco-button--primary")]')
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
+                session['tiempo'] = '(sin resultados)'
+                app.config['driver'].quit()
+                return render_template("done.html", current_year=datetime.now().year)
             except NoSuchElementException:
                 # DEBUG:
                 print("No ha saltado el mensaje de Premium")
@@ -550,32 +565,17 @@ def busqueda():
         # carlos = "https://www.linkedin.com/search/results/people/?geoUrn=%5B%22105646813%22%5D&industry=%5B%22135%22%2C%2253%22%2C%2223%22%2C%22112%22%2C%22147%22%2C%2218%22%2C%2260%22%5D&origin=FACETED_SEARCH&sid=B5L"
         # app.config['driver'].get(carlos)
 
-        # Empiezo a contar el tiempo
-        start = time.time()
-        end = 0.0
 
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
-            return render_template("done.html", current_year=datetime.now().year, tiempo='(sin resultados)')
+            session['tiempo'] = '(sin resultados)'
+            return render_template("done.html", current_year=datetime.now().year)
         except NoSuchElementException:
-
-            async_scrapping(shots, deep, cuadro_texto)
-           
-            # Paro el reloj, cierro el scrapper, actualizo shots restantes en BD y muestro resultados
-            end = time.time()
-            app.config['driver'].quit()
-            shots_gastados = len(session['perfiles_visitados'])
-            if session.get('opcion') == '1':
-                session['visits_left'] = int(session.get('visits_left', 0)) - shots_gastados
-                db.set_visits_left_by_id(int(session.get('visits_left', 0)), session["user_id"] )
-            elif session.get('opcion') == '2':
-                session['messages_left'] = int(session.get('messages_left', 0)) - shots_gastados
-                db.set_messages_left_by_id(int(session.get('messages_left', 0)), session["user_id"] )
-            elif session.get('opcion') == '3':
-                session['connections_left'] = int(session.get('connections_left', 0)) - shots_gastados
-                db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
-            return render_template("done.html", current_year=datetime.now().year, tiempo=h.parse_time(round(end - start, 2)), numero_perfiles=shots_gastados)
+            # El scrapping va en un hilo asincrono para no bloquear la aplicación
+            app.config['scrapping'] = Thread(target=async_scrapping(shots, deep, cuadro_texto))
+            app.config['scrapping'].start()
+            return redirect(url_for('wait'))
 
     else:
         if session.get('user_id') is not None:
@@ -584,6 +584,42 @@ def busqueda():
             app.config['driver'].quit()
             return render_template('index.html', current_year=datetime.now().year)
         
+
+
+@app.route('/check_status')
+def check_status():
+    '''
+    Compruebo si el hilo de scrapping sigue ejecutándose o no
+    '''
+    if app.config['scrapping'].is_alive():
+        return jsonify({'status': 'running'})
+    else:
+        return jsonify({'status': 'finished'})
+
+
+
+@app.route('/wait', methods=['GET', 'POST'])
+def wait():
+    print("\n\nEstoy en wait\n\n")
+    return render_template('wait.html', current_year=datetime.now().year)
+
+
+
+@app.route('/done', methods=['GET'])
+def done():
+    # Actualizo shots restantes en BD y muestro resultados
+    shots_gastados = len(session['perfiles_visitados'])
+    if session.get('opcion') == '1':
+        session['visits_left'] = int(session.get('visits_left', 0)) - shots_gastados
+        db.set_visits_left_by_id(int(session.get('visits_left', 0)), session["user_id"] )
+    elif session.get('opcion') == '2':
+        session['messages_left'] = int(session.get('messages_left', 0)) - shots_gastados
+        db.set_messages_left_by_id(int(session.get('messages_left', 0)), session["user_id"] )
+    elif session.get('opcion') == '3':
+        session['connections_left'] = int(session.get('connections_left', 0)) - shots_gastados
+        db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
+    
+    return render_template("done.html", current_year=datetime.now().year, numero_perfiles=shots_gastados)
 
 
 @app.route('/descargar', methods=['POST', 'GET'])

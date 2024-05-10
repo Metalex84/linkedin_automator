@@ -6,6 +6,24 @@ Filtra tu búsqueda
 
 {% block main %}
 <div class="container mt-5">
+
+    <!--
+    <script>
+        $(document).ready(function () {
+            $('#buscar').click(function () {
+                $.ajax({
+                    url: '/busqueda',
+                    type: 'POST',
+                    success: function (response) {
+                        console.log('------------------------Redireccionando a la página de espera.')
+                        window.location.href = '/wait';
+                    }
+                });
+            });
+        });
+    </script>
+    -->
+    
     <h2>Bienvenido, {{ session.link_user }}</h2>
     <p class="lead">Te quedan <b>{{ session.messages_left }}</b> mensajes restantes hoy, <b>{{ session.connections_left
             }}</b> solicitudes de conexión restantes esta semana y <b>{{ session.visits_left }}</b> visitas restantes
@@ -23,7 +41,7 @@ Filtra tu búsqueda
             <input type="number" class="form-control mx-auto w-auto" id="numero_shots" name="numero_shots">
         </div>
         <br>
-        <button type="submit" class="btn btn-primary">Buscar</button>
+        <button type="submit" class="btn btn-primary" id="buscar">Buscar</button>
     </form>
     {% else %}
     <div class="mb-3">
