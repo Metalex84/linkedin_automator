@@ -11,9 +11,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from math import ceil
 from datetime import datetime
+from threading import Thread
 import time
 import csv
-from threading import Thread
 
 import helpers as h
 import literals as l
@@ -274,9 +274,12 @@ def linklogin():
             contrasena = session.get('link_pass')
         
         # Abro navegador y redirijo a la página de LinkedIn
-        # chrome_options = Options()
-        # chrome_options.add_argument("--headless")
-        # app.config['driver'] = webdriver.Chrome(options=chrome_options)
+        
+        '''
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        app.config['driver'] = webdriver.Chrome(options=chrome_options)
+        '''
         
         app.config['driver'] = webdriver.Chrome()
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
@@ -302,7 +305,8 @@ def linklogin():
             # Almaceno credenciales LinkedIn en sesión para sucesivas llamadas solo si el login fue correcto
             session['link_user'] = usuario
             session['link_pass'] = contrasena
-            # Trato de recuperar el nombre propio del usuario; si por lo que sea no lo encuentra, muestro el email
+
+            # Trato de recuperar el nombre propio del usuario; si no lo encuentra, muestro el email
             nombre_propio = ''
             try:
                 nombre_propio = app.config['driver'].find_element(By.XPATH, l.PATH_WELCOME_NAME).text.split(' ')[0]
@@ -324,12 +328,13 @@ def viewprofile():
         
 
 
+##################################################################
 def validate_shots(numero_shots):
     ''' 
     Valido el numero de shots introducido por el usuario.
-    Si deja el valor vacio, devuelvo el maximo de shots que tiene disponible.
-    Si introduce un valor, lo valido y devuelvo el valor correcto
-    Si da un error, se valida como "not number"
+    - Si deja el valor vacio, devuelvo el maximo de shots que tiene disponible.
+    - Si introduce un valor, lo valido y devuelvo el valor correcto
+    - Si da un error, se valida como "not number"
     '''
     if session.get('opcion') == '1':
         if numero_shots.strip() == '':
@@ -346,6 +351,7 @@ def validate_shots(numero_shots):
             return session.get('connections_left', 0)
         else:
             return h.check_number(request.form.get('numero_shots'), session.get('connections_left', 0))
+##################################################################
         
 
 
@@ -355,7 +361,6 @@ def async_scrapping(shots, deep, cuadro_texto):
     Realizo el scrapeo como tal, recorriendo páginas de resultados.
     Se ejecutará en un hilo asíncrono para no bloquear la aplicación.
     '''
-    print("\n\nEntrando en el hilo...\n\n")
     # Empiezo a contar el tiempo
     start = time.time()
     end = 0.0
@@ -401,7 +406,7 @@ def async_scrapping(shots, deep, cuadro_texto):
                 rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
                 
                 # DEBUG
-                print(f'El perfil de {nombre} se titula "{rol}" y su url es {public_url}')
+                # print(f'El perfil de {nombre} se titula "{rol}" y su url es {public_url}')
 
                 # Agrego el contacto a la lista
                 contacto = h.Persona(nombre, rol, url, public_url, None)
@@ -412,8 +417,7 @@ def async_scrapping(shots, deep, cuadro_texto):
                 session['perfiles_visitados'].append(contacto)
                 
             except NoSuchElementException:
-                # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...), así que paso al siguiente
-                print("Ojo, algun dato no se ha podido recuperar")
+                # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...), así que lo omito y paso al próximo
                 i += 1
                 pass
             finally:
@@ -481,7 +485,10 @@ def async_scrapping(shots, deep, cuadro_texto):
     end = time.time()
     app.config['driver'].quit()
     session['tiempo'] = h.parse_time(round(end - start, 2))
-    print("\n\nSaliendo del hilo...\n\n")
+
+    # DEBUG
+    print("Codigo asincrono ejecutado")
+    
     return 
 ##################################################################
 
@@ -543,8 +550,6 @@ def busqueda():
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
-                # DEBUG:
-                print("No ha saltado el mensaje de Sales Navigator")
                 pass
         else:
             try:
@@ -555,8 +560,6 @@ def busqueda():
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
-                # DEBUG:
-                print("No ha saltado el mensaje de Premium")
                 pass
         
         # DEBUG: solo para buscar empresas concretas
@@ -572,10 +575,10 @@ def busqueda():
             session['tiempo'] = '(sin resultados)'
             return render_template('done.html')
         except NoSuchElementException:
-            # El scrapping va en un hilo asincrono para no bloquear la aplicación
-            app.config['scrapping'] = Thread(target=async_scrapping(shots, deep, cuadro_texto))
-            app.config['scrapping'].start()
-            return redirect(url_for('wait'))
+            session['shots'] = shots
+            session['deep'] = deep
+            session['cuadro_texto'] = cuadro_texto
+            return render_template('confirm.html')
 
     else:
         if session.get('user_id') is not None:
@@ -592,15 +595,37 @@ def check_status():
     Compruebo si el hilo de scrapping sigue ejecutándose o no
     '''
     if app.config['scrapping'].is_alive():
-        return jsonify({'status': 'running'})
+        status = 'running'
     else:
-        return jsonify({'status': 'finished'})
+        status = 'finished'
+        
+    return jsonify({'status': status})
+
+
+
+@app.route('/confirm', methods=['POST'])
+def confirm():
+    '''
+    Página de confirmación de la busqueda
+    '''
+    # DEBUG
+    print("***********Voy a iniciar el hilo asincrono")
+    # El scrapping va en un hilo asincrono para no bloquear la aplicación
+    
+    app.config['scrapping'] = Thread(target=async_scrapping(session.get('shots'), session.get('deep'), session.get('cuadro_texto')))
+    app.config['scrapping'].start()
+
+    # DEBUG
+    print("***********Hilo asincrono iniciado")
+
+    return redirect(url_for('wait'))
 
 
 
 @app.route('/wait', methods=['GET', 'POST'])
 def wait():
-    print("\n\nEstoy en wait\n\n")
+    # DEBUG
+    print("Cargo la pagina de espera")
     return render_template('wait.html')
 
 
@@ -620,6 +645,7 @@ def done():
         db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
     
     return render_template("done.html", numero_perfiles=shots_gastados)
+
 
 
 @app.route('/descargar', methods=['POST', 'GET'])

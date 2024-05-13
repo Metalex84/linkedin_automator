@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Confirmación
+{% endblock %}
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<header class="alert alert-primary border text-center" role="alert">
+    {{ message }}
+</header>
+{% endif %}
+{% endwith %}
+
+{% block main %}
+<div class="container text-center mb-5">
+    <div class="mb-3">
+        <h3>Voy a buscar unas <i>{{ session.shots }}</i> personas con el criterio: <i>'{{ session.cuadro_texto }}'</i></h3>
+        <br>
+        <button id="start" class="btn btn-primary">Confirmar</button>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                $("#start").click(function () {
+                    $.ajax({
+                        url: '/confirm',
+                        type: 'POST',
+                        success: function (response) {
+                            // Redirigir al usuario a la página de espera
+                            window.location.href = '/wait';
+                        },
+                    });
+                });
+            });
+        </script>
+        <a href="/busqueda" class="btn btn-secondary">Volver</a>
+    </div>
+</div>
+
+{% endblock %}
