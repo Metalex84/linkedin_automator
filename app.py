@@ -37,7 +37,8 @@ app.config['driver'] = None
 app.config['current_year'] = datetime.now().year
 app.config['texto_mensaje'] = None
 app.config['scrapping'] = None
-
+app.config['tiempo'] = None
+app.config['perfiles_visitados'] = []
 
 
 @app.after_request
@@ -356,7 +357,7 @@ def validate_shots(numero_shots):
 
 
 ##################################################################
-def async_scrapping(shots, deep, cuadro_texto):
+def async_scrapping(shots, deep, cuadro_texto, opcion):
     '''
     Realizo el scrapeo como tal, recorriendo páginas de resultados.
     Se ejecutará en un hilo asíncrono para no bloquear la aplicación.
@@ -411,10 +412,10 @@ def async_scrapping(shots, deep, cuadro_texto):
                 # Agrego el contacto a la lista
                 contacto = h.Persona(nombre, rol, url, public_url, None)
                 # Solo si la opcion es enviar mensajes, recupero el mensaje y lo añado a la Persona
-                if session.get('opcion') == '2':
+                if opcion == '2':
                     custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
                     contacto.set_mensaje(custom_message)
-                session['perfiles_visitados'].append(contacto)
+                    app.config['perfiles_visitados'].append(contacto)
                 
             except NoSuchElementException:
                 # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...), así que lo omito y paso al próximo
@@ -425,7 +426,7 @@ def async_scrapping(shots, deep, cuadro_texto):
                 h.wait_random_time()
 
         # Si tengo que conectar o enviar mensajes, no he visitado perfil (aunque haya recuperado sus datos).
-        if session.get('opcion') == '3':
+        if opcion == '3':
             # Construyo la lista de botones "Conectar" en cada una de las paginas
             all_buttons = app.config['driver'].find_elements(By.TAG_NAME, "button")
             connect_buttons = [btn for btn in all_buttons if btn.text == l.ELEMENT_BUTTON_CONNECT]
@@ -436,7 +437,7 @@ def async_scrapping(shots, deep, cuadro_texto):
                 app.config['driver'].execute_script("arguments[0].click();", send)
                 # TODO: conseguir saltar a contactos con mayor nivel de privacidad
         '''
-        elif session.get('opcion') == '2':
+        elif opcion == '2':
             message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
 
             for btn in message_buttons:
@@ -476,20 +477,20 @@ def async_scrapping(shots, deep, cuadro_texto):
     
     # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
     '''
-    if session.get('opcion') == '1':
-        for person in session['perfiles_visitados']:
+    if opcion == '1':
+        for person in app.config['perfiles_visitados']:
             app.config['driver'].get(person.url)
             h.wait_random_time()
     '''
     # Paro el reloj, cierro el scrapper
     end = time.time()
     app.config['driver'].quit()
-    session['tiempo'] = h.parse_time(round(end - start, 2))
+    app.config['tiempo'] = h.parse_time(round(end - start, 2))
 
     # DEBUG
     print("Codigo asincrono ejecutado")
     
-    return 
+    return
 ##################################################################
 
 
@@ -537,7 +538,7 @@ def busqueda():
                 return redirect(url_for('busqueda'))
         
         # Reseteo los perfiles visitados en sesion en cada nueva busqueda
-        session['perfiles_visitados'] = []
+        app.config['perfiles_visitados'] = []
 
         # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles, y si el usuario ha agotado sus visitas gratuitas en LinkedIn
         app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
@@ -546,7 +547,7 @@ def busqueda():
                 # "¿Quieres probar Sales Navigator por 0€?"
                 app.config['driver'].find_element(By.XPATH, '//*[contains(@class,"artdeco-button--premium artdeco-button--secondary  premium-upsell-link--extra-long")]')
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                session['tiempo'] = '(sin resultados)'
+                app.config['tiempo'] = '(sin resultados)'
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
@@ -556,7 +557,7 @@ def busqueda():
                 # "¿Quieres probar Premium gratis durante un mes?"
                 app.config['driver'].find_element(By.XPATH, '//*[contains(@class, "artdeco-button artdeco-button--premium artdeco-button--primary")]')
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                session['tiempo'] = '(sin resultados)'
+                app.config['tiempo'] = '(sin resultados)'
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
@@ -572,7 +573,7 @@ def busqueda():
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
-            session['tiempo'] = '(sin resultados)'
+            app.config['tiempo'] = '(sin resultados)'
             return render_template('done.html')
         except NoSuchElementException:
             session['shots'] = shots
@@ -595,11 +596,9 @@ def check_status():
     Compruebo si el hilo de scrapping sigue ejecutándose o no
     '''
     if app.config['scrapping'].is_alive():
-        status = 'running'
+        return jsonify({'status': 'running'})
     else:
-        status = 'finished'
-        
-    return jsonify({'status': status})
+        return jsonify({'status': 'finished'})
 
 
 
@@ -612,17 +611,17 @@ def confirm():
     print("***********Voy a iniciar el hilo asincrono")
     # El scrapping va en un hilo asincrono para no bloquear la aplicación
     
-    app.config['scrapping'] = Thread(target=async_scrapping(session.get('shots'), session.get('deep'), session.get('cuadro_texto')))
+    app.config['scrapping'] = Thread(target=async_scrapping, args=[session.get('shots'), session.get('deep'), session.get('cuadro_texto'), session.get('opcion')], daemon = True)
     app.config['scrapping'].start()
 
     # DEBUG
     print("***********Hilo asincrono iniciado")
 
-    return redirect(url_for('wait'))
+    return url_for('wait')
 
 
 
-@app.route('/wait', methods=['GET', 'POST'])
+@app.route('/wait')
 def wait():
     # DEBUG
     print("Cargo la pagina de espera")
@@ -633,7 +632,7 @@ def wait():
 @app.route('/done', methods=['GET'])
 def done():
     # Actualizo shots restantes en BD y muestro resultados
-    shots_gastados = len(session['perfiles_visitados'])
+    shots_gastados = len(app.config['perfiles_visitados'])
     if session.get('opcion') == '1':
         session['visits_left'] = int(session.get('visits_left', 0)) - shots_gastados
         db.set_visits_left_by_id(int(session.get('visits_left', 0)), session["user_id"] )
@@ -662,7 +661,7 @@ def descargar():
             accion = l.ACTION_MESSAGE_WRITTEN
         elif session.get('opcion') == '3':
             accion = l.ACTION_CONNECTION_SENT
-        for perfil in session['perfiles_visitados']:
+        for perfil in app.config['perfiles_visitados']:
             writer.writerow([perfil.get_nombre(), perfil.get_rol(), perfil.get_public_url(), datetime.now().date(), accion, perfil.get_mensaje()])
     return send_file(l.OUTPUT_CSV, as_attachment=True)
 
