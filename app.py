@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 # from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
 # from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.chrome.service import Service
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -39,6 +40,7 @@ app.config['texto_mensaje'] = None
 app.config['scrapping'] = None
 app.config['tiempo'] = None
 app.config['perfiles_visitados'] = []
+# webdriver_path = '/webdriver/chromedriver'
 
 
 @app.after_request
@@ -274,8 +276,13 @@ def linklogin():
             usuario = session.get('link_user')
             contrasena = session.get('link_pass')
         
-        # Abro navegador y redirijo a la página de LinkedIn        
+        # Configuro el webdriver
+        # service = Service(executable_path=webdriver_path)
+        # options = webdriver.ChromeOptions()        
+        # app.config['driver'] = webdriver.Chrome(service=service, options=options)
         app.config['driver'] = webdriver.Chrome()
+
+        # Abro navegador y redirijo a la página de LinkedIn
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
         try:
             username = app.config['driver'].find_element(By.XPATH, l.ELEMENT_SESSION_KEY)
