@@ -4,7 +4,6 @@
 # TODO: estilar y poner bonito el front
 
 
-## TODO: try-except en todos los find_element / find_elements para controlar posibles errores.
 ## TODO: confirmacion de cambio de contraseña enviando link de autentificación al email
 ## TODO: ajustar CSV a estructura legible para HubSpot
 ## TODO: ajustar anchura de los cuadros de texto de pedir datos

@@ -12,11 +12,13 @@ ERR_PASSWORDS_NOT_MATCH = "¡Las contraseñas no coinciden!"
 ERR_CORPORATE_EMAIL = "¡Utiliza tu correo corporativo como nombre de usuario!"
 ERR_EMPTY_MESSAGE = "¡Introduce un mensaje!"
 ERR_WRONG_MESSAGE = "No has introducido la secuencia de escape '----' en el mensaje"
-ERR_NO_LINKEDIN_USER = "¡Introduce un nombre de usuario de LinkedIn!"
-ERR_NO_LINKEDIN_PASS = "¡Introduce una contraseña de LinkedIn!"
+ERR_LINKEDIN_NO_USER = "¡Introduce un nombre de usuario de LinkedIn!"
+ERR_LINKEDIN_NO_PASS = "¡Introduce una contraseña de LinkedIn!"
 ERR_LINKEDIN_LOGIN_WRONG = "¡Usuario o contraseña de LinkedIn incorrectos!"
+ERR_LINKEDIN_NO_ACTIONS_LEFT = "Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn"
 ERR_NO_SHOTS_LEFT = "¡No tienes suficientes acciones restantes!"
 ERR_NUMERICAL_SHOTS = "Por favor, introduce un número entre 1 y "
+ERR_UNKNOWN = "Error inesperado. Por favor, inténtelo de nuevo o contacte con el Administrador"
 
 ACTION_VISIT_PROFILES = "visitar perfiles"
 ACTION_WRITE_MESSAGES = "escribir mensajes"
@@ -44,5 +46,9 @@ DEEP_2 = '&network=%5B"S"%5D'
 
 PATH_WELCOME_NAME = "/html/body/div[6]/div[3]/div/div/div[2]/div/div/div/div/div[1]/div[1]/a/div[2]"
 PATH_NUMBER_RESULTS = "//div[3]/div[2]/div/div[1]/main/div/div/div[1]/h2"
+PATH_BUTTON_NAVIGATOR = '//*[contains(@class,"artdeco-button--premium artdeco-button--secondary  premium-upsell-link--extra-long")]'
+PATH_BUTTON_PREMIUM = '//*[contains(@class, "artdeco-button artdeco-button--premium artdeco-button--primary")]'
+
+TEXT_NO_RESULTS = '(sin resultados)'
 
 OUTPUT_CSV = "perfiles.csv"

@@ -264,24 +264,17 @@ def linklogin():
             # En el HTML no son campos "required" porque si están en sesión no los necesito.
             # Pero si no están en sesión, valido si el usuario los introduce o no.
             if not usuario:
-                flash(l.ERR_NO_LINKEDIN_USER)
+                flash(l.ERR_LINKEDIN_NO_USER)
                 return redirect(url_for('linklogin'))
             elif not contrasena:
-                flash(l.ERR_NO_LINKEDIN_PASS)
+                flash(l.ERR_LINKEDIN_NO_PASS)
                 return redirect(url_for('linklogin'))
         # Si ya tengo el login de linkedin en sesión, ya no lo vuelvo a pedir mientras dure la sesión
         else:
             usuario = session.get('link_user')
             contrasena = session.get('link_pass')
         
-        # Abro navegador y redirijo a la página de LinkedIn
-        
-        '''
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        app.config['driver'] = webdriver.Chrome(options=chrome_options)
-        '''
-        
+        # Abro navegador y redirijo a la página de LinkedIn        
         app.config['driver'] = webdriver.Chrome()
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
         try:
@@ -294,7 +287,12 @@ def linklogin():
         
         username.send_keys(usuario)
         password.send_keys(contrasena)
-        app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SUBMIT).click()
+        try:
+            app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SUBMIT).click()
+        except NoSuchElementException:
+            flash("Error inesperado. Por favor, inténtelo de nuevo.")
+            app.config['driver'].quit()
+            return redirect(url_for('linklogin'))
         h.wait_random_time()
 
         # Si la URL a la que llego es la de inicio o la de nuevamente introducir login, es que las credenciales no son correctas
@@ -538,9 +536,9 @@ def busqueda():
         if session.get('opcion') == '2':
             try:
                 # "¿Quieres probar Sales Navigator por 0€?"
-                app.config['driver'].find_element(By.XPATH, '//*[contains(@class,"artdeco-button--premium artdeco-button--secondary  premium-upsell-link--extra-long")]')
-                flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                app.config['tiempo'] = '(sin resultados)'
+                app.config['driver'].find_element(By.XPATH, l.PATH_BUTTON_NAVIGATOR)
+                flash(l.ERR_LINKEDIN_NO_ACTIONS_LEFT)
+                app.config['tiempo'] = l.TEXT_NO_RESULTS
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
@@ -548,9 +546,9 @@ def busqueda():
         else:
             try:
                 # "¿Quieres probar Premium gratis durante un mes?"
-                app.config['driver'].find_element(By.XPATH, '//*[contains(@class, "artdeco-button artdeco-button--premium artdeco-button--primary")]')
-                flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
-                app.config['tiempo'] = '(sin resultados)'
+                app.config['driver'].find_element(By.XPATH, l.PATH_BUTTON_PREMIUM)
+                flash(l.ERR_LINKEDIN_NO_ACTIONS_LEFT)
+                app.config['tiempo'] = l.TEXT_NO_RESULTS
                 app.config['driver'].quit()
                 return render_template("done.html")
             except NoSuchElementException:
@@ -566,7 +564,7 @@ def busqueda():
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
-            app.config['tiempo'] = '(sin resultados)'
+            app.config['tiempo'] = l.TEXT_NO_RESULTS
             return render_template('done.html')
         except NoSuchElementException:
             session['shots'] = shots
@@ -604,9 +602,14 @@ def confirm():
     # Reseteo los perfiles visitados en cada nueva busqueda
     app.config['perfiles_visitados'] = []
     
-    # El scrapping va en un hilo asincrono para no bloquear la aplicación
-    app.config['scrapping'] = Thread(target=async_scrapping, args=[session.get('shots'), session.get('deep'), session.get('cuadro_texto'), session.get('opcion')])
-    app.config['scrapping'].start()
+    # El scrapping va en un hilo asincrono para no bloquear la aplicación. 
+    # Lo encierro en try-except para controlar posibles errores de find_element/elements
+    try:
+        app.config['scrapping'] = Thread(target=async_scrapping, args=[session.get('shots'), session.get('deep'), session.get('cuadro_texto'), session.get('opcion')])
+        app.config['scrapping'].start()
+    except NoSuchElementException:
+        flash(l.ERR_UNKNOWN)
+        return redirect(url_for('busqueda'))
 
     return url_for('wait')
 
