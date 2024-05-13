@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-Bienvenido, {{ username }}
+Bienvenido, {{ session.username }}
 {% endblock %}
 
 {% with messages = get_flashed_messages() %}
@@ -17,7 +17,7 @@ Bienvenido, {{ username }}
 <script src='/static/script.js'></script>
 <div class="container text-center mb-5">
     <div class="form-check form-check-inline">
-        <h2>Hola, {{ username }}, ¿qué deseas hacer?</h2>
+        <h2>Hola, {{ session.username }}, ¿qué deseas hacer?</h2>
         <form action="/acciones" method="post" class="d-flex justify-content-center">
             <div class="form-check form-check-inline">
                 <select id="opciones" name="opciones" class="form-select" required>

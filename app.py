@@ -32,9 +32,9 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 
-
 ''' Configuro variables globales'''
 app.config['driver'] = None
+app.config['current_year'] = datetime.now().year
 app.config['texto_mensaje'] = None
 app.config['scrapping'] = None
 
@@ -55,10 +55,10 @@ def after_request(response):
 def index():
     if "user_id" in session:
         user = db.get_user_by_id(session["user_id"])
-        return render_template('actions.html', current_year=datetime.now().year, username=user["usuario"])
+        return render_template('actions.html', username=user["usuario"])
         
     else:
-        return render_template('index.html', current_year=datetime.now().year)
+        return render_template('index.html')
     
 
 
@@ -80,7 +80,7 @@ def login():
         user = db.get_user_by_name(request.form.get('username'))
         if len(user) != 1 or not check_password_hash(user[0]['password'], request.form.get('password')):
             flash(l.ERR_USER_OR_PASS_WRONG)
-            return render_template('index.html', current_year=datetime.now().year)
+            return render_template('index.html')
 
         # Guardo en sesión los datos que necesitaré del usuario mientras esté logueado
         session["user_id"] = user[0]['id']
@@ -106,10 +106,10 @@ def login():
             if last_connect.isocalendar()[1] < datetime.now().isocalendar()[1]:
                 db.set_connections_left_by_id(l.MAX_WEEKLY_CONNECTIONS, session["user_id"])
 
-        return render_template("actions.html", current_year=datetime.now().year, username=request.form.get('username'))
+        return render_template("actions.html")
 
     else:
-        return render_template('index.html', current_year=datetime.now().year)
+        return render_template('index.html')
 
 
 
@@ -169,13 +169,13 @@ def register():
 
             return redirect(url_for('acciones'))
     else:
-        return render_template('register.html', current_year=datetime.now().year)
+        return render_template('register.html')
 
 
 
 @app.route('/forgot', methods=['GET'])
 def forgot():
-    return render_template('reset.html', current_year=datetime.now().year)
+    return render_template('reset.html')
 
 
 
@@ -199,7 +199,7 @@ def reset():
             db.set_password_by_id(hash, user[0]['id'])
             return redirect(url_for('index'))
     else:
-        return render_template('reset.html', current_year=datetime.now().year)
+        return render_template('reset.html')
 
 
 
@@ -230,20 +230,20 @@ def acciones():
             
         elif session.get('opcion') == '3':
             session['accion'] = l.ACTION_SEND_CONNECTIONS
-        return render_template('linklogin.html', current_year=datetime.now().year)
+        return render_template('linklogin.html')
         
     else:
         if "user_id" in session:
             username = db.get_user_by_id(session["user_id"])
-            return render_template('actions.html', current_year=datetime.now().year, username=username["usuario"])
+            return render_template('actions.html', username=username["usuario"])
         else:
-            return render_template('index.html', current_year=datetime.now().year)
+            return render_template('index.html')
 
 
 
 @app.route('/help', methods=['GET'])
 def help():
-    return render_template('help.html', current_year=datetime.now().year)
+    return render_template('help.html')
 
 
 
@@ -308,19 +308,19 @@ def linklogin():
                 nombre_propio = app.config['driver'].find_element(By.XPATH, l.PATH_WELCOME_NAME).text.split(' ')[0]
             except NoSuchElementException:
                 nombre_propio = usuario
-            return render_template('busqueda.html', usuario=nombre_propio, current_year=datetime.now().year)
+            return render_template('busqueda.html', usuario=nombre_propio)
     else:
         if session.get('user_id') is not None:
-            return render_template('linklogin.html', current_year=datetime.now().year)
+            return render_template('linklogin.html')
         else:
-            return render_template('index.html', current_year=datetime.now().year)
+            return render_template('index.html')
 
 
 
 @app.route('/viewprofile', methods=['GET'])
 @h.login_required
 def viewprofile():
-    return render_template('viewprofile.html', current_year=datetime.now().year)
+    return render_template('viewprofile.html')
         
 
 
@@ -541,7 +541,7 @@ def busqueda():
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
                 session['tiempo'] = '(sin resultados)'
                 app.config['driver'].quit()
-                return render_template("done.html", current_year=datetime.now().year)      
+                return render_template("done.html")
             except NoSuchElementException:
                 # DEBUG:
                 print("No ha saltado el mensaje de Sales Navigator")
@@ -553,7 +553,7 @@ def busqueda():
                 flash("Se han agotado las búsquedas gratuitas. Revisa tu configuración de LinkedIn")
                 session['tiempo'] = '(sin resultados)'
                 app.config['driver'].quit()
-                return render_template("done.html", current_year=datetime.now().year)
+                return render_template("done.html")
             except NoSuchElementException:
                 # DEBUG:
                 print("No ha saltado el mensaje de Premium")
@@ -570,7 +570,7 @@ def busqueda():
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
             app.config['driver'].find_element(By.XPATH, l.ELEMENT_EMPTY_STATE)
             session['tiempo'] = '(sin resultados)'
-            return render_template("done.html", current_year=datetime.now().year)
+            return render_template('done.html')
         except NoSuchElementException:
             # El scrapping va en un hilo asincrono para no bloquear la aplicación
             app.config['scrapping'] = Thread(target=async_scrapping(shots, deep, cuadro_texto))
@@ -579,10 +579,10 @@ def busqueda():
 
     else:
         if session.get('user_id') is not None:
-            return render_template('busqueda.html', current_year=datetime.now().year)
+            return render_template('busqueda.html')
         else:
             app.config['driver'].quit()
-            return render_template('index.html', current_year=datetime.now().year)
+            return render_template('index.html')
         
 
 
@@ -601,7 +601,7 @@ def check_status():
 @app.route('/wait', methods=['GET', 'POST'])
 def wait():
     print("\n\nEstoy en wait\n\n")
-    return render_template('wait.html', current_year=datetime.now().year)
+    return render_template('wait.html')
 
 
 
@@ -619,7 +619,7 @@ def done():
         session['connections_left'] = int(session.get('connections_left', 0)) - shots_gastados
         db.set_connections_left_by_id(int(session.get('connections_left', 0)), session["user_id"] )
     
-    return render_template("done.html", current_year=datetime.now().year, numero_perfiles=shots_gastados)
+    return render_template("done.html", numero_perfiles=shots_gastados)
 
 
 @app.route('/descargar', methods=['POST', 'GET'])
