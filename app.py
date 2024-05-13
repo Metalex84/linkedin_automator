@@ -407,7 +407,7 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
                 rol = app.config['driver'].find_element(By.XPATH, h.path_role(i)).text
                 
                 # DEBUG
-                # print(f'El perfil de {nombre} se titula "{rol}" y su url es {public_url}')
+                print(f'El perfil de {nombre} se titula "{rol}" y su url es {public_url}')
 
                 # Agrego el contacto a la lista
                 contacto = h.Persona(nombre, rol, url, public_url, None)
@@ -415,7 +415,7 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
                 if opcion == '2':
                     custom_message = app.config['texto_mensaje'].replace('----', nombre.split(' ')[0])
                     contacto.set_mensaje(custom_message)
-                    app.config['perfiles_visitados'].append(contacto)
+                app.config['perfiles_visitados'].append(contacto)
                 
             except NoSuchElementException:
                 # Si caigo aquí, es porque el perfil no es visible o accesible ("Miembro de LinkedIn", perfil privado...), así que lo omito y paso al próximo
@@ -476,19 +476,15 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
         pagina += 1
     
     # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
-    '''
     if opcion == '1':
         for person in app.config['perfiles_visitados']:
             app.config['driver'].get(person.url)
             h.wait_random_time()
-    '''
+
     # Paro el reloj, cierro el scrapper
     end = time.time()
     app.config['driver'].quit()
     app.config['tiempo'] = h.parse_time(round(end - start, 2))
-
-    # DEBUG
-    print("Codigo asincrono ejecutado")
     
     return
 ##################################################################
@@ -536,9 +532,6 @@ def busqueda():
             elif shots > int(session.get('connections_left', 0)):
                 flash(l.ERR_NO_SHOTS_LEFT)
                 return redirect(url_for('busqueda'))
-        
-        # Reseteo los perfiles visitados en sesion en cada nueva busqueda
-        app.config['perfiles_visitados'] = []
 
         # Cargo pagina de busqueda para averiguar cuantas vueltas daran los bucles, y si el usuario ha agotado sus visitas gratuitas en LinkedIn
         app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep)
@@ -607,15 +600,13 @@ def confirm():
     '''
     Página de confirmación de la busqueda
     '''
-    # DEBUG
-    print("***********Voy a iniciar el hilo asincrono")
-    # El scrapping va en un hilo asincrono para no bloquear la aplicación
     
-    app.config['scrapping'] = Thread(target=async_scrapping, args=[session.get('shots'), session.get('deep'), session.get('cuadro_texto'), session.get('opcion')], daemon = True)
+    # Reseteo los perfiles visitados en cada nueva busqueda
+    app.config['perfiles_visitados'] = []
+    
+    # El scrapping va en un hilo asincrono para no bloquear la aplicación
+    app.config['scrapping'] = Thread(target=async_scrapping, args=[session.get('shots'), session.get('deep'), session.get('cuadro_texto'), session.get('opcion')])
     app.config['scrapping'].start()
-
-    # DEBUG
-    print("***********Hilo asincrono iniciado")
 
     return url_for('wait')
 
@@ -623,8 +614,9 @@ def confirm():
 
 @app.route('/wait')
 def wait():
-    # DEBUG
-    print("Cargo la pagina de espera")
+    '''
+    Carga una página de espera mientras se ejecuta el scrapping
+    '''
     return render_template('wait.html')
 
 

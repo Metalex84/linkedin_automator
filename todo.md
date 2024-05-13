@@ -1,4 +1,3 @@
-# TODO: hilo asíncrono en "/busqueda"
 # TODO: verificar reseteos de shots según tratamiento fechas
 # TODO: rellenar y guardar un historial de acciones realizadas en BD
 # TODO: pagina de ayuda. Advertir de los límites, y de que cada usuario utilice solo una cuenta de LinkedIn para no desvirtuar los limites.
