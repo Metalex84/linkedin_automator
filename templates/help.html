@@ -5,9 +5,152 @@ Ayuda
 {% endblock %}
 
 {% block main %}
-<h1>Página en construcción</h1>
+<h1>Temas de ayuda</h1>
 
-<div class="container">
-    
+<div class="container mt-5">
+    <br>
+    <div class="accordion" id="listAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="topicOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    <b>¿Qué es y qué hace LinkedIn Automator?</b>
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="topicOne"
+                data-bs-parent="#listAccordion">
+                <div class="accordion-body">
+                    <p style="text-align: left;"> LinkedIn Automator es una herramienta de <b>Web-Scrapping</b> que
+                        permite automatizar ciertas
+                        acciones relacionadas con <b>búsqueda de personas</b> dentro de la red social LinkedIn a base de
+                        <b>ciclos de trabajo</b>.
+                        <br><br>
+                        Elige qué <b>tipo de acción</b> quieres realizar y, posteriormente,
+                        <b>busca personas por texto</b> para aplicar la acción sobre la lista de resultados de la
+                        búsqueda. Opcionalmente, en cada búsqueda podrás <b>limitar</b> la cantidad de personas a las
+                        que desees llegar</i>
+                        <br><br>
+                        Tras cada ciclo de trabajo, visualizarás una <b>tabla de resultados de la búsqueda</b>, con un
+                        registro de las acciones realizadas.
+                        <br><br>
+                        Si lo deseas, podrás <b>descargar en un CSV</b> el resultado del ciclo de trabajo, para poder
+                        guardarlo en tus registros o alimentar un CRM como <b>HubSpot</b> o <b>SalesForce</b>.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="topicTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="topicTwo">
+                    <b>¿Cómo es un ciclo de trabajo básico de LinkedIn Automator?</b>
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingOne"
+                data-bs-parent="#listAccordion">
+                <div class="accordion-body">
+                    <ol style="text-align: left;">
+                        <li class="pt-1 pb-1">Si ya tienes cuenta, pulsa en <b>Entrar</b>; de lo contrario, regístrate
+                            en <b>Crear cuenta</b></li>
+                        <li class="pt-1 pb-1">Introduce el usuario y la contraseña; si la has olvidado, la podrás
+                            restablecer en la página de inicio</li>
+                        <li class="pt-1 pb-1">Elige qué deseas hacer: <b>Visitar Perfiles</b>, <b>Enviar Mensajes</b> o
+                            <b>Solicitar Conexiones</b>
+                        </li>
+                        <ul class="pt-1 pb-1">
+                            <li class="pt-1 pb-1"><i>Al seleccionar <b>Enviar Mensajes</b>, se abrirá un campo de texto para que puedas
+                                    introducir el mensaje que desees enviar a tus contactos</i></li>
+                            <li class="pt-1 pb-1"><i><b>IMPORTANTE:</b> dadas las restricciones actuales de seguridad de LinkedIn, no es posible 
+                                realizar el envío automatizado de mensajes personalizados.
+                                Para respetar los términos de uso de LinkedIn, la aplicación se limita a 
+                                <b>construir un mensaje personalizado para cada contacto sin enviarlo</b>, dejándote a tí la libertad de decidir qué hacer con él</i></li>
+                        </ul>
+                        <li class="pt-1 pb-1">Introduce tus credenciales de LinkedIn.</li>
+                        <ul>
+                            <li class="pt-1 pb-1"><i>LinkedIn Automator no almacena tus claves de
+                                    LinkedIn: solo se almacenan en sesión y se borran cuando pulsas en <b>Salir</b>.</i>
+                            </li>
+                            <li class="pt-1 pb-1"><i>Tras cada ciclo de trabajo, si vuelves a iniciar otro y no has
+                                    cerrado sesión, <b>no tendrás que volver a intrducir estas credenciales</b></i></li>
+                        </ul>
+                        <li class="pt-1 pb-1">Introduce un texto y, opcionalmente, introduce la cantidad de personas
+                            aproximadamente a quienes quieres que se aplique la acción.</li>
+                        <li class="pt-1 pb-1">Pulsa en <b>Buscar</b> para iniciar el ciclo de trabajo y <b>espera sin
+                                cerrar el navegador</b></li>
+                        <li class="pt-1 pb-1">Cuando visualices los resultados, podrás <b>volver a empezar</b> o
+                            <b>descargar un CSV</b> con los resultados del ciclo de trabajo.
+                        </li>
+                        <li class="pt-1 pb-1">En la barra de navegación puedes consultar tu <b>Perfil</b> con un resumen
+                            del estado de tus créditos</li>
+                        <li class="pt-1 pb-1">En todo momento podrás consultar esta página de <b>Ayuda</b>.</li>
+                        <li class="pt-1 pb-1">Y si deseas cerrar tu sesión, pulsa en <b>Salir</b>.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="topicThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    <b>¿Cómo gestiona LinkedIn Automator las limitaciones de las cuentas gratuitas de LinkedIn?</b>
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="topicThree"
+                data-bs-parent="#listAccordion">
+                <div class="accordion-body">
+                    <p style="text-align: left;">Las cuentas gratuitas de LinkedIn establecen ciertas
+                        <b>limitaciones</b> en la interacción con el resto de los usuarios. Esto se debe a que LinkedIn
+                        <b>tiene sus propios servicios de pago</b> para sacar el máximo partido a sus capacidades.
+                        <br><br>
+                        LinkedIn restringe el uso según el número de contactos, la frecuencia de las publicaciones o
+                        reacciones, y de la antigüedad, entre otros parámetros.
+                        <br><br>
+                        Estos límites tratan de ser implementados por LinkedIn Automator para ayudarte a mantener en
+                        todo momento el control sobre tu cuenta de LinkedIn, <b>aunque son solo estimaciones</b> que
+                        pueden variar en función de la actividad de cada cuenta.
+                        <br><br>
+                        Si sobrepasas tus límites en LinkedIn Automator, tendrás que <b>esperar</b> el tiempo que tome cada tipo de acción o, 
+                        en su defecto, <b>solicitar al Administrador de la aplicación</b> que restablezca tus límites.
+                        <br><br>
+                        Ten en cuenta siempre que <b>eres responsable de tus créditos gratuitos</b> en LinkedIn. Si los
+                        sobrepasas, no podrías seguir interactuando con usuarios en la red
+                        social hasta que LinkedIn restablezca tus límites. Por consiguiente, LinkedIn Automator <b>no
+                            podrá seguir trabajando si no tienes créditos disponibles</b> en tu cuenta de LinkedIn.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="topicFour">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                    <b>¿Infringe LinkedIn Automator los Términos y Condiciones de LinkedIn?</b>
+                </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="topicFour"
+                data-bs-parent="#listAccordion">
+                <div class="accordion-body">
+                    <p style="text-align: left;">
+                        Según el punto 8.2.2 de las <a href="https://es.linkedin.com/legal/user-agreement?#dos" target="_blank">
+                            Condiciones de Uso</a>, no está permitido el uso de <i>herramientas de automatización que plagien los Servicios o 
+                            copien perfiles o datos de los servicios de LinkedIn.</i>
+                        <br><br>
+                        LinkedIn Automator <b>no infringe</b> los Términos y Condiciones de LinkedIn, ya que sus funcionalidades no pueden 
+                        reemplazar las que incluyen servicios como <b>LinkedIn Premium</b> o <b>Sales Navigator</b>. 
+                        <br><br>
+                        Sin embargo, tras iniciar sesión de forma automática, y posteriormente de forma aleatoria, es posible que LinkedIn solicite 
+                        que <b>verifiques tu identidad</b>, pidiéndote que introduzcas manualmente tu usuario y contraseña o mediante un <b>captcha</b>. 
+                        <br><br>
+                        Este proceso es normal, pero interrumpe el flujo de trabajo normal de LinkedIn Automator. <b>Deberás permanecer atento a estas solicitudes para poder seguir utilizando la aplicación.</b>
+                        <br><br>
+                        Si algún inicio automático de sesión no es satisfactorio, prueba a <b>iniciar sesión manualmente</b> en LinkedIn con el mismo navegador y, a continuación, <b>vuelve a intentarlo en LinkedIn Automator.</b>
+                        <br><br>
+                        No olvides que <b>eres responsable de tu cuenta de LinkedIn</b> y de <b>respetar los Términos y Condiciones</b> de la red social.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
 {% endblock %}
