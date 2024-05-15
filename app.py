@@ -483,7 +483,7 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
     # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
     if opcion == '1':
         for person in app.config['perfiles_visitados']:
-            app.config['driver'].get(person.url)
+            app.config['driver'].get(person.get_url())
             h.wait_random_time()
 
     # Paro el reloj, cierro el scrapper
