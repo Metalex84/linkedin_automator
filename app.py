@@ -438,7 +438,14 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
             for btn in connect_buttons:
                 app.config['driver'].execute_script("arguments[0].click();", btn)
                 h.wait_random_time()
-                send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
+                try:
+                    send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_NOW)
+                except NoSuchElementException:
+                    pass
+                try:
+                    send = app.config['driver'].find_element(By.XPATH, l.ELEMENT_BUTTON_SEND_WO_GREETING)
+                except NoSuchElementException:
+                    pass
                 app.config['driver'].execute_script("arguments[0].click();", send)
                 # TODO: conseguir saltar a contactos con mayor nivel de privacidad
         '''

@@ -39,6 +39,7 @@ ELEMENT_EMPTY_STATE = '//h2[contains(@class, "artdeco-empty-state__headline")]'
 ELEMENT_PAGE_PROFILES = '//*[@class="app-aware-link  scale-down "]'
 ELEMENT_BUTTON_CONNECT = "Conectar"
 ELEMENT_BUTTON_SEND_NOW = "//button[@aria-label='Enviar ahora']"
+ELEMENT_BUTTON_SEND_WO_GREETING = "//button[@aria-label='Enviar sin nota']"
 
 DEEP_2_3 = '&network=%5B"S"%2C"O"%5D'
 DEEP_1 = '&network=%5B"F"%5D'

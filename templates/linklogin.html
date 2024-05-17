@@ -6,15 +6,16 @@ Conectate a LinkedIn
 
 
 {% block main %}
+<img src="static/LinkedIn_Logo.png" alt="LinkedIn Logo" class="img-fluid" width="50">
 {% if not session.link_user or not session.link_pass %}
 <h2>Introduce tus claves de LinkedIn</h2>
 <form action="/linklogin" method="post">
     <div class="mb-3">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-50" id="user" name="username"
+        <input autocomplete="off" autofocus class="form-control mx-auto w-25" id="user" name="username"
             placeholder="eMail" type="text">
     </div>
     <div class="mb-3">
-        <input class="form-control mx-auto w-50" id="passw" name="password" placeholder="Contraseña" type="password"
+        <input class="form-control mx-auto w-25" id="passw" name="password" placeholder="Contraseña" type="password"
             aria-describedby="mostrar-contraseña">
     </div>
     <div class="mb-3">
