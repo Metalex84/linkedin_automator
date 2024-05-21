@@ -32,8 +32,8 @@ URL_LINKEDIN_HOME = "https://www.linkedin.com/login"
 URL_LINKEDIN_LOGIN = "https://www.linkedin.com/uas/login-submit"
 URL_LINKEDIN_SEARCH_PEOPLE = "https://www.linkedin.com/search/results/people/?keywords="
 
-ELEMENT_SESSION_KEY = "//*[@id='session_key']"
-ELEMENT_SESSION_PASSWORD = "//*[@id='session_password']"
+ELEMENT_SESSION_KEY = "//*[@name='session_key']"
+ELEMENT_SESSION_PASSWORD = "//*[@id='password']"
 ELEMENT_BUTTON_SUBMIT = "//button[@type='submit']"
 ELEMENT_EMPTY_STATE = '//h2[contains(@class, "artdeco-empty-state__headline")]'
 ELEMENT_PAGE_PROFILES = '//*[@class="app-aware-link  scale-down "]'
