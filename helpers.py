@@ -1,4 +1,4 @@
-from flask import redirect, render_template, session
+from flask import redirect, session
 from functools import wraps
 from urllib.parse import urlparse
 

@@ -3,10 +3,7 @@ from flask_session import Session
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-# from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.chrome.service import Service
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -40,7 +37,6 @@ app.config['texto_mensaje'] = None
 app.config['scrapping'] = None
 app.config['tiempo'] = None
 app.config['perfiles_visitados'] = []
-# webdriver_path = '/webdriver/chromedriver'
 
 
 @app.after_request
@@ -277,9 +273,6 @@ def linklogin():
             contrasena = session.get('link_pass')
         
         # Configuro el webdriver
-        # service = Service(executable_path=webdriver_path)
-        # options = webdriver.ChromeOptions()        
-        # app.config['driver'] = webdriver.Chrome(service=service, options=options)
         app.config['driver'] = webdriver.Chrome()
 
         # Abro navegador y redirijo a la página de LinkedIn
@@ -388,11 +381,7 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
     while (pagina <= num_pags and pagina <= pages_shot):
 
         # Recargo la pagina de busqueda y espero un poco
-        app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")
-        
-        # DEBUG
-        # app.config['driver'].get(f"{carlos}&page={pagina}")
-        
+        app.config['driver'].get(l.URL_LINKEDIN_SEARCH_PEOPLE + cuadro_texto + deep + f"&page={pagina}")        
         h.wait_random_time()
 
         # Construyo la lista de perfiles a visitar en esa pagina (LinkedIn muestra maximo 10 por cada una)
@@ -447,44 +436,7 @@ def async_scrapping(shots, deep, cuadro_texto, opcion):
                 except NoSuchElementException:
                     pass
                 app.config['driver'].execute_script("arguments[0].click();", send)
-                # TODO: conseguir saltar a contactos con mayor nivel de privacidad
-        '''
-        elif opcion == '2':
-            message_buttons = app.config['driver'].find_elements(By.XPATH, "//button[contains(@aria-label, 'Enviar mensaje')]")
-
-            for btn in message_buttons:
-                # Click en el boton de mandar el mensaje y esperar un poco
-                app.config['driver'].execute_script("arguments[0].click();", btn)
-                h.wait_random_time()
-                # Conseguir el nombre del destinatario y personalizar el mensaje
-                name = btn.get_attribute('aria-label').split(' ')[3]
-                custom_message = app.config['texto_mensaje'].replace('----', name)
-                # TODO: aquí, añadir mensaje a clase Persona
-
-
-                # Encuentro el 'div' en el que está el párrafo que contendrá el texto, y encuentro el párrafo
-                # app.config['driver'].find_element(By.XPATH, "//div[starts-with(@class, 'msg-form__msg-content-container')]").click()
-                # textfields = app.config['driver'].find_elements(By.TAG_NAME, "p")
-                
-                # Borro el cuadro de texto, que por defecto ocupa 2 párrafos
-                # textfields[-6].clear()
-                # textfields[-5].clear()
-                # En el párrafo que queda, escribo el mensaje personalizado y vuelvo a esperar
-                # textfields[-5].send_keys(custom_message)
-                
-                # TODO: ojo, este es un punto critico!!!!
-                # Hago click en enviar
-                # send_button = app.config['driver'].find_element(By.XPATH, "//button[starts-with(@class, 'msg-form__send-button')]")
-                # app.config['driver'].execute_script("arguments[0].click();", send_button)
-                
-                # Busco darle a intro en el cuadro de texto, pero para eso hay que tener configurado antes eso en el LinkedIn de cada cual.
-                # textfields[-5].send_keys(Keys.RETURN)
-
-                # Hago click en cerrar la ventanita del mensaje y espero
-                close_window_msg = app.config['driver'].find_element(By.XPATH, "//button[contains(@class, 'msg-overlay-bubble-header__control artdeco-button artdeco-button--circle artdeco-button--muted artdeco-button--1 artdeco-button--tertiary ember-view')]")
-                app.config['driver'].execute_script("arguments[0].click();", close_window_msg)
-                h.wait_random_time()
-        '''
+      
         pagina += 1
     
     # Ya tengo construida la lista de personas a quienes he visitado el perfil, enviado mensaje o solicitado conexion. Ahora, les visito el perfil::
@@ -567,13 +519,6 @@ def busqueda():
                 return render_template("done.html")
             except NoSuchElementException:
                 pass
-        
-        # DEBUG: solo para buscar empresas concretas
-        # app.config['driver'].get("https://www.linkedin.com/search/results/companies/?companyHqGeo=%5B%22105646813%22%5D&keywords=logistica&origin=FACETED_SEARCH&sid=Yo-")
-        # app.config['driver'].get("https://www.linkedin.com/search/results/companies/?companyHqGeo=%5B%22105646813%22%5D&keywords=mensajeria&origin=GLOBAL_SEARCH_HEADER&sid=PzZ")
-        # carlos = "https://www.linkedin.com/search/results/people/?geoUrn=%5B%22105646813%22%5D&industry=%5B%22135%22%2C%2253%22%2C%2223%22%2C%22112%22%2C%22147%22%2C%2218%22%2C%2260%22%5D&origin=FACETED_SEARCH&sid=B5L"
-        # app.config['driver'].get(carlos)
-
 
         try:
             # Si la busqueda ha producido resultados se lanzará una excepción porque no encontraré el 'empty-state';
