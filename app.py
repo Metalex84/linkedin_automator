@@ -4,6 +4,7 @@ from flask_session import Session
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import WebDriverException
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -273,7 +274,11 @@ def linklogin():
             contrasena = session.get('link_pass')
         
         # Configuro el webdriver
-        app.config['driver'] = webdriver.Chrome()
+        try:
+            app.config['driver'] = webdriver.Chrome()
+        except WebDriverException:
+            flash(l.ERR_UNKNOWN)
+            return redirect(url_for('linklogin'))
 
         # Abro navegador y redirijo a la página de LinkedIn
         app.config['driver'].get(l.URL_LINKEDIN_HOME)
