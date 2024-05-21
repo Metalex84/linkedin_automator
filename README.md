@@ -3,7 +3,8 @@
 
 ## Descripción
 LinkedIn Automator es un **web-scrapper** que permite realizar búsquedas de personas en LinkedIn.
-**IMPORTANTE**: NO VULNERA LAS CONDICIONES DE USO DE LINKEDIN, ya que no plagia las características de ***Sales Navigator*** ni de ***LinkedIn Premium***
+
+**IMPORTANTE**: esta aplicación respeta las Condiciones de Uso de LinkedIn porque no plagia las características de ***Sales Navigator*** ni de ***LinkedIn Premium***
 
 ## Requisitos
 Es fundamental que [Google Chrome](https://www.google.com/chrome/), [Python](https://www.python.org/downloads/) y [Git](https://git-scm.com/downloads?ref=allthings.how) estén instalados en tu equipo.

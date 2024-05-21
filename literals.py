@@ -28,7 +28,7 @@ ACTION_PROFILE_VISITED = 'Perfil visitado'
 ACTION_MESSAGE_WRITTEN = 'Mensaje enviado'
 ACTION_CONNECTION_SENT = 'Solicitud de conexión'
 
-URL_LINKEDIN_HOME = "https://www.linkedin.com"
+URL_LINKEDIN_HOME = "https://www.linkedin.com/login"
 URL_LINKEDIN_LOGIN = "https://www.linkedin.com/uas/login-submit"
 URL_LINKEDIN_SEARCH_PEOPLE = "https://www.linkedin.com/search/results/people/?keywords="
 
