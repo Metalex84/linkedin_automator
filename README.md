@@ -9,7 +9,7 @@ Para ello, utiliza el webdriver de Google Chrome y un entorno virtual que tendr�
 **IMPORTANTE**: esta aplicación respeta las Condiciones de Uso de LinkedIn porque no plagia las características de ***Sales Navigator*** ni de ***LinkedIn Premium***
 
 ## Requisitos
-* Es fundamental que [Google Chrome](https://www.google.com/chrome/), [Python](https://www.python.org/downloads/) y [Git](https://git-scm.com/downloads?ref=allthings.how) estén instalados en tu equipo.
+* Es fundamental que [Firefox](https://www.mozilla.org/es-ES/firefox/new/), [Python](https://www.python.org/downloads/) y [Git](https://git-scm.com/downloads?ref=allthings.how) estén instalados en tu equipo.
 
 ### *Solo si utilizas Debian o Ubuntu*
 ***Tendrás que instalar Python de la siguiente manera***
@@ -42,7 +42,8 @@ sudo apt install virtualenv python3-virtualenv
 1. Descarga el fichero [install.sh](https://github.com/Metalex84/linkedin_automator/blob/main/install.sh)
 2. Abre la terminal de comandos (**Terminal**)
 3. Sitúate en la carpeta donde lo hayas descargado
-4. Escribe ```.\install.sh```
+4. Otorga permisos de ejecución al script: ```chmod +x install.sh```
+4. Escribe ```./install.sh```
 5. Pulsa ```INTRO``` 
 
 ## PARA EJECUTAR

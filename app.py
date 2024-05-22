@@ -275,7 +275,7 @@ def linklogin():
         
         # Configuro el webdriver
         try:
-            app.config['driver'] = webdriver.Chrome()
+            app.config['driver'] = webdriver.Firefox()
         except WebDriverException:
             flash(l.ERR_UNKNOWN)
             return redirect(url_for('linklogin'))
