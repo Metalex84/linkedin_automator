@@ -9,7 +9,11 @@ Para ello, utiliza el webdriver de Google Chrome y un entorno virtual que tendr�
 **IMPORTANTE**: esta aplicación respeta las Condiciones de Uso de LinkedIn porque no plagia las características de ***Sales Navigator*** ni de ***LinkedIn Premium***
 
 ## Requisitos
-* Es fundamental que [Firefox](https://www.mozilla.org/es-ES/firefox/new/), [Python](https://www.python.org/downloads/) y [Git](https://git-scm.com/downloads?ref=allthings.how) estén instalados en tu equipo.
+
+* Es fundamental que [Google Chrome](https://www.google.com/intl/es_es/chrome/), [Python](https://www.python.org/downloads/) y [Git](https://git-scm.com/downloads?ref=allthings.how) estén instalados en tu equipo.
+* Antes de empezar a utilizar la aplicación, es recomendable que inicies sesión manualmente en tu cuenta de LinkedIn con Google Chrome. 
+    * *Es posible que LinkedIn Automator te muestre mensajes de error al intentar acceder a tu cuenta en tu nombre: se debe al control que hace LinkedIn de los posibles comportamientos de bot.*
+    * *También es posible que durante la ejecución, LinkedIn te pida algún **código de verificación** o **'captcha'**; sigue las instrucciones en la pantalla.*
 
 ### *Solo si utilizas Debian o Ubuntu*
 ***Tendrás que instalar Python de la siguiente manera***
