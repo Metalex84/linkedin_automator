@@ -32,10 +32,18 @@ sudo apt install virtualenv python3-virtualenv
 ## PARA INSTALAR
 
 ### Windows
-Abre **PowerShell**, escribe ```ìnstall.ps1``` y pulsa ```INTRO```
+1. Descarga el fichero [install.ps1](https://github.com/Metalex84/linkedin_automator/blob/main/install.ps1)
+2. Abre la terminal de comandos (**PowerShell**)
+3. Sitúate en la carpeta donde lo hayas descargado
+4. Escribe ```.\install.ps1``` 
+5. Pulsa ```INTRO``` y ```Z``` para confirmar la ejecución
 
 ### Linux / MacOS
-Abre la **Terminal**^, escribe ```install.sh``` y pulsa ```INTRO```
+1. Descarga el fichero [install.sh](https://github.com/Metalex84/linkedin_automator/blob/main/install.sh)
+2. Abre la terminal de comandos (**Terminal**)
+3. Sitúate en la carpeta donde lo hayas descargado
+4. Escribe ```.\install.sh```
+5. Pulsa ```INTRO``` 
 
 ## PARA EJECUTAR
 1. **Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```**

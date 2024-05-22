@@ -2,7 +2,7 @@
 git clone https://github.com/Metalex84/linkedin_automator.git
 
 # Cambiar al directorio clonado
-cd linkedin_automator
+Set-Location linkedin_automator
 
 # Crear un entorno virtual de Python
 python -m venv venv
