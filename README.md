@@ -29,36 +29,18 @@ sudo apt install virtualenv python3-virtualenv
 * *Contesta con* ```S``` *o* ```Y``` *para confirmar el cambio*
 
 
-## INSTALACIÓN Y EJECUCIÓN
-Utiliza la terminal de comandos para instalar y ejecutar la aplicación en tu equipo:
-1. **Clona este repositorio:**
-```
-git clone https://github.com/Metalex84/linkedin_automator.git
-```
+## PARA INSTALAR
 
-2. **Desplázate a la carpeta del proyecto**
-```
-cd linkedin_automator
-```
+### Windows
+Abre **PowerShell**, escribe ```ìnstall.ps1``` y pulsa ```INTRO```
 
-3. **Instala el entorno virtual:**
+### Linux / MacOS
+Abre la **Terminal**^, escribe ```install.sh``` y pulsa ```INTRO```
 
-*Windows:*
-```
-python -m venv venv
-```
+## PARA EJECUTAR
+1. **Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```**
 
-*MacOS / Linux:*
-```
-python3 -m venv venv
-```
-
-*Linux:*
-```
-python3 -m venv venv
-```
-
-4. **Arranca el entorno virtual:**
+2. **Arranca el entorno virtual:**
 
 *Windows:*
 ```
@@ -71,23 +53,18 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-
-5. **Instala las dependencias:**
-```
-pip install -r requirements.txt
-```
-
-6. **Ejecuta el servicio:**
+3. **Ejecuta el servicio:**
 ```
 flask run
 ```
 
-7. **Carga esta dirección en cualquier navegador:**
+4. **Carga esta dirección en cualquier navegador:**
 http://localhost:5000/
 
-8. **Cuando hayas terminado, detén el servicio presionando** ```Ctrl + c```
+## PARA FINALIZAR
+1. **Cuando hayas terminado, detén el servicio presionando** ```Ctrl + c```
 
-9. **Desactiva el entorno virtual:**
+2. **Desactiva el entorno virtual:**
 ```
 deactivate
 ```
