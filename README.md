@@ -37,10 +37,8 @@ sudo apt install virtualenv python3-virtualenv
 
 ### Windows
 1. Descarga el fichero [install.ps1](https://github.com/Metalex84/linkedin_automator/blob/main/install.ps1)
-2. Abre la terminal de comandos (**PowerShell**)
-3. Sitúate en la carpeta donde lo hayas descargado
-4. Escribe ```.\install.ps1``` 
-5. Pulsa ```INTRO``` y ```Z``` para confirmar la ejecución
+2. Click derecho -> *"Ejecutar como script de PowerShell"*
+3. Pulsa ```INTRO``` y ```Z``` para confirmar la ejecución
 
 ### Linux / MacOS
 1. Descarga el fichero [install.sh](https://github.com/Metalex84/linkedin_automator/blob/main/install.sh)
@@ -51,33 +49,35 @@ sudo apt install virtualenv python3-virtualenv
 5. Pulsa ```INTRO``` 
 
 ## PARA EJECUTAR
-1. **Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```**
-
-2. **Arranca el entorno virtual:**
-
-*Windows:*
+### Windows
+1. Descarga el fichero [run.ps1](https://github.com/Metalex84/linkedin_automator/blob/main/run.ps1)
+2. Click derecho -> *"Ejecutar como script de PowerShell"*
+3. Carga esta dirección en cualquier navegador:
 ```
-.\venv\Scripts\Activate.ps1
+http://localhost:5000/
 ```
 
-*MacOS / Linux:*
-
+### Linux / MacOS
+1. Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```
+2. Arranca el entorno virtual:
 ```
 source venv/bin/activate
 ```
-
-3. **Ejecuta el servicio:**
+3. Ejecuta el servicio:
 ```
 flask run
 ```
-
-4. **Carga esta dirección en cualquier navegador:**
+4. Carga esta dirección en cualquier navegador:
 http://localhost:5000/
 
 ## PARA FINALIZAR
-1. **Cuando hayas terminado, detén el servicio presionando** ```Ctrl + c```
+### Windows
+1. Descarga el fichero [stop.ps1](https://github.com/Metalex84/linkedin_automator/blob/main/stop.ps1)
+2. Click derecho -> *"Ejecutar como script de PowerShell"*
 
-2. **Desactiva el entorno virtual:**
+### Linux / MacOS
+1. Detén el servicio presionando ```Ctrl + c```
+2. Desactiva el entorno virtual:
 ```
 deactivate
 ```
