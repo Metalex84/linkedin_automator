@@ -58,7 +58,7 @@ http://localhost:5000/
 ```
 
 ### Linux / MacOS
-1. Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```
+1. En la terminal de comandos, desplázate a la carpeta ```linkedin_automator```
 2. Arranca el entorno virtual:
 ```
 source venv/bin/activate
@@ -76,8 +76,19 @@ http://localhost:5000/
 2. Click derecho -> *"Ejecutar como script de PowerShell"*
 
 ### Linux / MacOS
-1. Detén el servicio presionando ```Ctrl + c```
+1. En la terminal de comandos, presiona ```Ctrl + c``` para detener el servicio de Flask.
 2. Desactiva el entorno virtual:
 ```
 deactivate
+```
+## PARA ACTUALIZAR
+### Windows
+1. Descarga el fichero [update.ps1](https://github.com/Metalex84/linkedin_automator/blob/main/update.ps1)
+2. Click derecho -> *"Ejecutar como script de PowerShell"*
+
+### Linux / MacOS
+1. Con la terminal de comandos, desplázate a la carpeta ```linkedin_automator```
+2. Actualiza el repositorio:
+```
+git pull origin main
 ```
