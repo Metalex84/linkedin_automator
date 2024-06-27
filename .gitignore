@@ -5,3 +5,4 @@ menv/
 venv/
 perfiles.csv
 key.md
+*.csv
