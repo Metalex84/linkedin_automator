@@ -114,17 +114,18 @@ def number_of_pages(str_results):
 
 
 
-
 def check_valid_username(username):
-    ''' Funcion que comprueba si el nombre de usuario se ajusta al email corporativo '''
+    ''' Funcion que comprueba si el nombre de usuario se ajusta al formato email '''
     str = username.split('@')
     if len(str) != 2:
         return False
-    if str[1] == 'horecarentable.com':
-        return True
     else:
-        return False
-    
+        return True
+    # if str[1] == 'horecarentable.com':
+    #    return True
+    # else:
+    #    return False
+
     
 
 def check_number(number, maximum):
