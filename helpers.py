@@ -1,3 +1,10 @@
+''' 
+Copyright (c) 2024 [Alejandro Gonzalez Venegas]
+
+Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 Internacional.
+https://creativecommons.org/licenses/by-nc/4.0/
+'''
+
 from flask import redirect, session
 from functools import wraps
 from urllib.parse import urlparse
