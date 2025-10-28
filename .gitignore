@@ -1,8 +1,42 @@
+# Python
 __pycache__/
-flask_session/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
 wenv/
 menv/
 venv/
-perfiles.csv
+env/
+ENV/
+
+# Flask
+flask_session/
+instance/
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de configuración sensibles
+.env
 key.md
+
+# Archivos de salida
+perfiles.csv
 *.csv
+
+# Backups
+*.backup
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema
+.DS_Store
+Thumbs.db
