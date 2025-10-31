@@ -26,7 +26,8 @@ def get_user_by_name(usuario):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT * FROM usuarios WHERE usuario = '{usuario}'"""
+        """SELECT * FROM usuarios WHERE usuario = ?""",
+        (usuario,)
         )
     users = cursor.fetchall()
     conn.commit()
@@ -51,7 +52,8 @@ def get_user_by_id(id):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT * FROM usuarios WHERE id = {id}"""
+        """SELECT * FROM usuarios WHERE id = ?""",
+        (id,)
         )
     user = cursor.fetchone()
     conn.commit()
@@ -95,9 +97,10 @@ def set_last_connection_by_id(last_connection, id):
     '''Fija la ultima fecha y hora de conexión por el id de usuario'''
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
-    cursor.execute("""UPDATE usuarios SET last_connection = ? WHERE id = ?""",
-                   (last_connection, id))
-    last_connection = cursor.fetchone()
+    cursor.execute(
+        """UPDATE usuarios SET last_connection = ? WHERE id = ?""",
+        (last_connection, id)
+        )
     conn.commit()
     conn.close()
 
@@ -108,7 +111,8 @@ def get_last_connection_by_id(id):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT last_connection FROM usuarios WHERE id = {id}"""
+        """SELECT last_connection FROM usuarios WHERE id = ?""",
+        (id,)
         )
     last_connection = cursor.fetchone()
     conn.commit()
@@ -164,13 +168,14 @@ def get_messages_left_by_id(id):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT messages_left FROM usuarios WHERE id = {id}"""
+        """SELECT messages_left FROM usuarios WHERE id = ?""",
+        (id,)
         )
-    messages_left = cursor.fetchall()
+    messages_left = cursor.fetchone()
     conn.commit()
     conn.close()
     if messages_left:
-        return messages_left[0][0]
+        return messages_left[0]
     else:
         return None
 
@@ -181,13 +186,14 @@ def get_connections_left_by_id(id):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT connections_left FROM usuarios WHERE id = {id}"""
+        """SELECT connections_left FROM usuarios WHERE id = ?""",
+        (id,)
         )
-    connections_left = cursor.fetchall()
+    connections_left = cursor.fetchone()
     conn.commit()
     conn.close()
     if connections_left:
-        return connections_left[0][0]
+        return connections_left[0]
     else:
         return None
     
@@ -198,12 +204,13 @@ def get_visits_left_by_id(id):
     conn = sql.connect('linkedin.db')
     cursor = conn.cursor()
     cursor.execute(
-        f"""SELECT visits_left FROM usuarios WHERE id = {id}"""
+        """SELECT visits_left FROM usuarios WHERE id = ?""",
+        (id,)
         )
-    visits_left = cursor.fetchall()
+    visits_left = cursor.fetchone()
     conn.commit()
     conn.close()
     if visits_left:
-        return visits_left[0][0]
+        return visits_left[0]
     else:
         return None

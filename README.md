@@ -98,3 +98,36 @@ deactivate
 ```
 git pull origin main
 ```
+
+## CONFIGURACIÓN INICIAL (Nueva instalación)
+
+⚠️ **IMPORTANTE**: Después de instalar, debes configurar las variables de entorno:
+
+### Todos los sistemas
+1. Copia el archivo de ejemplo:
+```bash
+cp .env.example .env
+```
+
+2. Genera una clave secreta única:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+3. Edita el archivo `.env` y reemplaza `SECRET_KEY` con la clave generada
+```bash
+# Linux/MacOS
+nano .env
+
+# Windows (usa tu editor preferido)
+notepad .env
+```
+
+4. Inicializa la base de datos:
+```bash
+python3 init_db.py
+```
+
+**Nota**: El archivo `.env` es privado y NO debe compartirse. Cada instalación debe tener su propia clave.
+
+Para más detalles, consulta [SECURITY_UPDATE.md](SECURITY_UPDATE.md)

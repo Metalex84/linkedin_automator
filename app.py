@@ -5,6 +5,11 @@ Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 I
 https://creativecommons.org/licenses/by-nc/4.0/
 '''
 
+import os
+from dotenv import load_dotenv
+
+# Cargo variables de entorno
+load_dotenv()
 from flask import Flask, flash, redirect, render_template, url_for, request, session, jsonify, send_file
 from flask_session import Session
 
@@ -28,7 +33,7 @@ import model as db
 
 ''' Configuro la aplicacion Flask y la clave secreta '''
 app = Flask(__name__)
-app.secret_key = "Secret_Key_LinkedinAutomator_Alex"
+app.secret_key = os.getenv("SECRET_KEY", "dev-key-CHANGE-THIS-IN-PRODUCTION")
 
 
 
@@ -282,7 +287,7 @@ def linklogin():
         
         # Configuro el webdriver
         try:
-            app.config['driver'] = webdriver.Chrome()
+            app.config['driver'] = webdriver.Chrome()  # TODO: Usar webdriver_helper.get_chrome_driver()
         except WebDriverException:
             flash(l.ERR_UNKNOWN)
             return redirect(url_for('linklogin'))
